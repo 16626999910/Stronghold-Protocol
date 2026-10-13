@@ -168,6 +168,16 @@
 }
 .ewheel__chat-send:hover:not(:disabled) { background: rgba(63, 191, 152, .3); color: #fff; }
 .ewheel__chat-send:disabled { opacity: .45; cursor: default; }
+/* 聊天记录「回放」(author 2026-10-13): 挂在输入栏正下方, 带发送者名 (取代全屏滚动) */
+.ewheel__log {
+  position: absolute; left: 0; top: calc(100% + .48rem); width: 100%; box-sizing: border-box;
+  max-height: 1rem; overflow-y: auto;
+  display: flex; flex-direction: column; gap: .02rem;
+  background: rgba(8, 11, 10, .94); border: 1px solid var(--line-2); border-radius: .06rem; padding: .05rem .08rem;
+}
+.ewheel__log-line { display: flex; gap: .06rem; font-size: .15rem; line-height: 1.3; }
+.ewheel__log-name { flex: none; max-width: 1.4rem; color: var(--mint-400); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ewheel__log-text { color: var(--text-hi); word-break: break-word; user-select: text; -webkit-user-select: text; }
 
 /* ---- 横穿屏幕的文字聊天 (ChatFloat)：与表情同款右→左，只是内容是文本 ------------------------------ */
 .cfloat {

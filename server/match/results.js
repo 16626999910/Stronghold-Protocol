@@ -124,6 +124,8 @@ export function buildResult(m, outcome) {
       eliminatedRound: ps.eliminatedRound,
       lp: Math.max(0, ps.lp),
       bandId: ps.bandId,
+      // 无尽模式: 该玩家的核心(专属)盟约 — 排行榜点开可看全队各自的核心盟约 (author 2026-10-13)
+      exclusiveBond: ps.exclusiveBond || null,
       // 无尽模式: every drafted strategy (the result card shows them all); [bandId] single in a normal match
       bandIds: Array.isArray(ps.bandIds) && ps.bandIds.length ? [...ps.bandIds] : ps.bandId ? [ps.bandId] : [],
       lineup,

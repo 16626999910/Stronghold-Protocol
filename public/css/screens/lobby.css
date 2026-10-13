@@ -223,6 +223,15 @@
 /* two half-width buttons: the big single-button type (see .create-box .btn--xl) is too wide in half a column, so trim it */
 .create-box__actions.is-split .btn--xl { font-size: .22rem; letter-spacing: .16em; padding-left: .06rem; padding-right: .06rem; }
 
+/* 大厅顶部 Q 群号 (author 2026-10-13): 醒目胶囊 */
+.lobby-qgroup {
+  margin-top: .05rem; padding: .04rem .16rem; border-radius: .07rem;
+  font-size: .22rem; font-weight: 700; letter-spacing: .08em;
+  color: var(--gold, #ffce8a); background: rgba(255, 180, 84, .14);
+  border: 1px solid rgba(255, 180, 84, .45);
+  text-shadow: 0 0 .12rem rgba(255, 180, 84, .5);
+}
+
 /* 每日重启倒计时 (server SP_RESTART_AT / welcome.restartAt): a live line under the lobby header — replaces the old
    dismissible popup. Turns amber (and pulses) inside the last 5 minutes. */
 .lobby-restart {

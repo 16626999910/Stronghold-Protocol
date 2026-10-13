@@ -132,6 +132,7 @@ import { IDENTITY, bossPrepField, tilesToDisp, leaderStand } from './prepfield.j
 import { pickOnTile, pickBattle, hitTiles } from './pick.js';
 import { promotionsOf } from './promote.js';
 import { skinFor } from '../ui/skins.js';
+import { transferBond } from '../ui/gameLogic/bonds.js';
 import { ensurePixi } from './app/pixi.js';
 import { pieceDirOf, pickUnitOf } from './app/pick.js';
 import { CAMERA_MS, BOARD3D_STABLE_MS, BOARD3D_RETRY_MS, PEN_CAMERA_MS, RANGE_GROUPS, LEADER_HIT_STYLE, DRAG_HOLD_TILES, CHAIN_KINDS, DROP_PENDING_MS } from './app/tune.js';
@@ -254,6 +255,10 @@ export async function createFieldView(host, options = {}) {
   let promoBase = [];
   const promotions = [];      // the last merges cued by setPrep (fx.promote): { uid, id, area, row, col, idx, copies } — dev / tests
   let battleMeta = null;
+  // 无尽狂潮 转职: whether a `giveBondId` item worn alone IS a 转职 (m.private.endless via setPrep / m.public.endless passed
+  // into enterBattle). Web the piece / unit items through it so the canvas draws the 盟约 icon for them too (not only the
+  // owner's own prep, whose pieces carry the server-set `grantBond`).
+  let aloneFlag = false;
   let sceneHold = null;       // release function of the Spine cache hold of battle mode (holdScene)
   const infos = new Map();    // battle unit id → UnitInfo
   // battle ids whose view finished its death / leak fade: a snapshot may still list them for a moment (the sim keeps
@@ -623,6 +628,20 @@ export async function createFieldView(host, options = {}) {
 
   // ---- prep -----------------------------------------------------------------------------------------------
 
+  /**
+   * The icon of an equipped item's pip: a 转职 (`giveBondId` item in an endless match, or an owner's piece item carrying
+   * the server-set `grantBond`) draws its 盟约 icon, a plain item its own. `it` is an { id, grantBond? } piece item or a
+   * bare id (the sim's UnitInfo items).
+   */
+  function itemPipIcon(it) {
+    const id = typeof it === 'string' ? it : it?.id;
+    const gb = (it && typeof it === 'object' ? it.grantBond : null) || transferBond(id, (x) => data.item(x), aloneFlag);
+    const r = data.item(id);
+    if (!assets.itemIcon) return null;
+    if (gb && assets.bondIcon) return assets.bondIcon(gb);
+    return assets.itemIcon(r ? { trapId: r.trapId, iconId: r.iconId } : id);
+  }
+
   function pieceInfo(piece, area) {
     const kind = piece.kind;
     // board pieces face their stored dir (the server default RIGHT when absent), drawn through the prep field (mirrored
@@ -631,8 +650,10 @@ export async function createFieldView(host, options = {}) {
     if (kind === 'item') {
       const rec = data.item(piece.id);
       const tier = rec?.tier || piece.tier || 1;
-      // 转职 (无尽狂潮): draw the 盟约 icon instead of the item's own
-      const url = piece.grantBond && assets.bondIcon ? assets.bondIcon(piece.grantBond)
+      // 转职 (无尽狂潮): draw the 盟约 icon instead of the item's own — the owner's piece carries `grantBond`; a bare
+      // item id (a scouted board) derives it from the item data + the match's flag (transferBond)
+      const gb = piece.grantBond || transferBond(piece.id, (x) => data.item(x), aloneFlag);
+      const url = gb && assets.bondIcon ? assets.bondIcon(gb)
         : assets.itemIcon ? assets.itemIcon(rec ? { trapId: rec.trapId, iconId: rec.iconId } : piece.id) : null;
       return { kind: 'item', defId: piece.id, icon: url, color: (piece.golden || rec?.isGolden) ? 0xffc600 : TIER_COLORS[tier] || TIER_COLORS[1] };
     }
@@ -704,6 +725,7 @@ export async function createFieldView(host, options = {}) {
       });
     };
     const src = ps && typeof ps === 'object' ? ps : {};
+    aloneFlag = !!src.endless; // 无尽狂潮: the own m.private (the 转职 icon derives from the item id here)
     standInList = Array.isArray(src.standIns) ? src.standIns.filter((x) => typeof x === 'string') : [];
     diyPicks = src.diy && typeof src.diy === 'object' ? src.diy : {};
     ownPen = Array.isArray(src.nextEnemies) ? src.nextEnemies : null;
@@ -772,7 +794,7 @@ export async function createFieldView(host, options = {}) {
       v.dimmed = false;
       if (info.kind === 'item' && v.setIcon) v.setIcon(info.icon); // an icon the manifest named late (onAssets)
       if (v.setCount) v.setCount(e.piece.kind === 'token' ? e.piece.count : 0);
-      if (v.setItems) v.setItems(Array.isArray(e.piece.items) ? e.piece.items.map((it) => { const r = data.item(it?.id); return assets.itemIcon ? assets.itemIcon(r ? { trapId: r.trapId, iconId: r.iconId } : it?.id) : null; }) : []);
+      if (v.setItems) v.setItems(Array.isArray(e.piece.items) ? e.piece.items.map(itemPipIcon) : []);
       v._showFacing = e.area === 'board';
       // the stored facing (a piece held by the direction step shows the wheel's preview instead)
       if (e.area === 'board' && info.dir && !held.has(e.uid) && typeof v.setDir === 'function') v.setDir(info.dir);
@@ -807,7 +829,7 @@ export async function createFieldView(host, options = {}) {
       if (info.dir && typeof v.setDir === 'function') v.setDir(info.dir);
       v._showFacing = true;
       if (v.setItems && Array.isArray(info.items) && info.items.length) {
-        v.setItems(info.items.map((it) => { const r = data.item(it); return assets.itemIcon ? assets.itemIcon(r ? { trapId: r.trapId, iconId: r.iconId } : it) : null; }));
+        v.setItems(info.items.map(itemPipIcon));
       }
       views.set(info.id, v);
     }
@@ -1246,8 +1268,11 @@ export async function createFieldView(host, options = {}) {
     if (release) { try { release(); } catch { /* ignore */ } }
   }
 
-  function enterBattle(meta) {
+  function enterBattle(meta, opts) {
     if (destroyed || !meta || typeof meta !== 'object') return false;
+    // 无尽狂潮 转职: the game screen passes the match's flag (`{ alone }`); a bare m.field meta may carry `endless` too
+    if (opts && typeof opts.alone === 'boolean') aloneFlag = opts.alone;
+    else if (typeof meta.endless === 'boolean') aloneFlag = meta.endless;
     holdScene(true); // before the prep views go: the cache is never "quiet" across the switch
     drag.reset();
     endDragVisual(false);
@@ -1291,8 +1316,10 @@ export async function createFieldView(host, options = {}) {
   function scoutItemInfo(info) {
     const rec = data.item(info.defId);
     const tier = rec?.tier || info.tier || 1;
+    // a 转职 item on a scouted board (bare UnitInfo defId, endless match) draws its 盟约 icon too
+    const gb = transferBond(info.defId, (x) => data.item(x), aloneFlag);
     return { ...info,
-      icon: assets.itemIcon ? assets.itemIcon(rec ? { trapId: rec.trapId, iconId: rec.iconId } : info.defId) : null,
+      icon: assets.itemIcon ? ((gb && assets.bondIcon) ? assets.bondIcon(gb) : assets.itemIcon(rec ? { trapId: rec.trapId, iconId: rec.iconId } : info.defId)) : null,
       color: (info.golden || rec?.isGolden) ? 0xffc600 : TIER_COLORS[tier] || TIER_COLORS[1] };
   }
 
@@ -1307,7 +1334,7 @@ export async function createFieldView(host, options = {}) {
     // a teammate's operator shows its equipped items like the own prep bench does (item pips; user playtest #2:
     // at the unit, not only in the detail card) — prep surfaces only, the battle HUD stays as it is
     if (v.setItems && battleMeta?.prep && Array.isArray(info.items) && info.items.length) {
-      v.setItems(info.items.map((it) => { const r = data.item(it); return assets.itemIcon ? assets.itemIcon(r ? { trapId: r.trapId, iconId: r.iconId } : it) : null; }));
+      v.setItems(info.items.map(itemPipIcon));
     }
     v.setWorld(info.x, info.y, 0);
     v._seen = false;

@@ -7,6 +7,7 @@ import { Img } from './gameComponents.js';
 import { itemIconUrl, bondIconUrl } from './assetUrls.js';
 import { data } from '../data.js';
 import { t } from '../../../shared/i18n.js';
+import { ENDLESS } from '../../../shared/constants.js';
 
 const RARITY_TEXT = { white: '普通', blue: '稀有', gold: '传说', color: '炫彩' };
 const RARITY_CLS = { white: 'is-white', blue: 'is-blue', gold: 'is-gold', color: 'is-color' };
@@ -50,25 +51,27 @@ export function RelicOverlay({ offer, kind, nameOf = () => null, onPick = () => 
 }
 
 /**
- * 经济商店弹窗 (无尽狂潮, author 2026-10-12): 每 SHOP_EVERY 回合弹出, 用资金买「转职」(图标 = 盟约图标) 与「装备」。
- * 买到的进「下方备战席」。`offer` = m.private.econOffer { round, entries:[{kind,id,name,bond,bondName,price,sold}] }。
+ * 经济商店弹窗 (无尽狂潮, author 2026-10-12/13): 每 SHOP_EVERY 回合弹出, 用资金买「转职」/「装备」/「藏品」。
+ * 买到的进「下方备战席」(藏品直接入藏品库)。**不限购买件数**; 「刷新」重新抽一批货 (首次 1 币, 每次翻倍)。
+ * `offer` = m.private.econOffer { round, entries:[{kind,id,name,bond,bondName,price,sold}], refreshes }。
  */
-export function EconShopOverlay({ offer, onBuy = () => {}, onClose = () => {} }) {
+export function EconShopOverlay({ offer, onBuy = () => {}, onRefresh = () => {}, onClose = () => {} }) {
   if (!offer || !Array.isArray(offer.entries) || !offer.entries.length) return null;
   const assets = data.get('assets');
-  const bought = !!offer.bought;
+  const refreshCost = Math.max(1, Math.round(ENDLESS.ECON_REFRESH_BASE * Math.pow(ENDLESS.ECON_REFRESH_MUL, offer.refreshes || 0)));
   return html`<${Modal} open=${true} title=${t('经济商店')} onClose=${null} closeOnBackdrop=${false} width="min(1360px, 94vw)"
-    actions=${html`<${Button} variant="primary" onClick=${onClose}>${t('退出商店')}<//>`}>
+    actions=${html`
+      <${Button} variant="secondary" icon="refresh" onClick=${onRefresh}>${t('刷新')} · ¤ ${refreshCost}<//>
+      <${Button} variant="primary" onClick=${onClose}>${t('退出商店')}<//>`}>
     <${MicroLabel} tone="mint">ECONOMY SHOP // 每 {10} 回合 · 资金购买</${MicroLabel}>
-    <p class=${`econ__hint${bought ? ' is-bought' : ''}`}>
-      <${Icon} name=${bought ? 'check' : 'info'} />${bought ? t('本商店已购买（每个商店只能购买一件）') : t('每个商店只能购买一件道具')}</p>
+    <p class="econ__hint"><${Icon} name="info" />${t('不限购买件数；刷新可换一批货（首次 1 币，每次翻倍）')}</p>
     <div class="relicov relicov--econ" data-testid="econ-shop">
       ${offer.entries.map((e, i) => {
         const url = e.kind === 'transfer' && e.bond
           ? bondIconUrl(assets, e.bond)
           : e.icon ? itemIconUrl(assets, { iconId: e.icon })
           : itemIconUrl(assets, data.lookup('items', e.id));
-        const sold = !!e.sold || bought;
+        const sold = !!e.sold;
         return html`<button type="button" key=${`${e.kind}:${e.id}:${i}`} class=${`reliccard reliccard--econ${sold ? ' is-sold' : ''}`}
           disabled=${sold} title=${e.text || e.name} onClick=${() => { if (!sold) onBuy(i); }}>
           <span class="reliccard__top">

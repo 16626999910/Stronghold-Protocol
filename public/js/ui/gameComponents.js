@@ -10,6 +10,7 @@ import { t as tr } from '../../../shared/i18n.js';
 import {
   uiUrl, chessAvatarUrl, chessPortraitUrl, itemIconUrl, tokenAvatarUrl, enemyIconUrl, bondIconUrl, bandIconUrl,
 } from './assetUrls.js';
+import { transferBond } from './gameLogic/bonds.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
@@ -110,8 +111,10 @@ export const isGoldenPiece = (piece, chess) => !!(piece?.golden || chess?.isGold
  *   showTier?: boolean, class?: string, dim?: boolean, badge?: any, title?: string, rec?: any }} props
  *   `rec`: the chess record to draw instead of the data's (a 自选 piece's composed record — 0.2.0, gameLogic/diy.js; a
  *   补位 stand-in's — gameLogic/standIn.js: drawn with a small 「替补」 mark in the corner)
+ *   `alone`: the match grants a `giveBondId` item its bond alone (endless 转职) — the item draws its 盟约 icon even when
+ *   the server did not mark it (`grantBond`); outside endless this is off and the item keeps its own icon.
  */
-export function UnitThumb({ kind = 'chess', id, golden, size = 'md', tier, showTier = true, class: cls, dim = false, badge = null, title, rec = null, grantBond = null }) {
+export function UnitThumb({ kind = 'chess', id, golden, size = 'md', tier, showTier = true, class: cls, dim = false, badge = null, title, rec = null, grantBond = null, alone = false }) {
   const m = data.get('assets');
   let src = null;
   let name = '';
@@ -126,7 +129,8 @@ export function UnitThumb({ kind = 'chess', id, golden, size = 'md', tier, showT
     golden = golden ?? !!c?.isGolden;
   } else if (kind === 'item') {
     const it = data.lookup('items', id);
-    src = grantBond ? bondIconUrl(m, grantBond) : itemIconUrl(m, it); // 转职: 盟约图标
+    const gb = grantBond || transferBond(id, (x) => data.lookup('items', x), alone); // 转职: 盟约图标
+    src = gb ? bondIconUrl(m, gb) : itemIconUrl(m, it);
     name = it?.name || '';
     t = t ?? it?.tier;
     golden = golden ?? !!it?.isGolden;
@@ -153,10 +157,10 @@ export function UnitThumb({ kind = 'chess', id, golden, size = 'md', tier, showT
 }
 
 /** Thumbnail for an m.private Piece. */
-export function PieceThumb({ piece, size = 'md', class: cls, badge }) {
+export function PieceThumb({ piece, size = 'md', class: cls, badge, alone = false }) {
   if (!piece) return null;
   return html`<${UnitThumb} kind=${piece.kind === 'item' ? 'item' : piece.kind === 'token' ? 'token' : 'chess'} id=${piece.id}
-    golden=${!!piece.golden} tier=${piece.tier} size=${size} class=${cls} badge=${badge} grantBond=${piece.grantBond || null} />`;
+    golden=${!!piece.golden} tier=${piece.tier} size=${size} class=${cls} badge=${badge} grantBond=${piece.grantBond || null} alone=${alone} />`;
 }
 
 /**

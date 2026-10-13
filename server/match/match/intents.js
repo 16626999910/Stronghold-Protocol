@@ -25,6 +25,7 @@ export class MatchIntents {
       case 'g.bandFocus': return this.bandFocus(ps, msg.bandId ?? null);
       case 'g.buy': return ps.buy(msg.slot);
       case 'g.econBuy': return this.endlessBuyEcon(ps, msg.idx); // 经济商店弹窗: 买转职/装备
+      case 'g.econRefresh': return this.endlessEconRefresh(ps); // 经济商店弹窗: 刷新货架 (首次 1, 每次翻倍)
       case 'g.refresh': return ps.refresh();
       case 'g.freeze': return ps.freeze();
       case 'g.levelUp': return ps.levelUp();

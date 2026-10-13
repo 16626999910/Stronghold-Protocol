@@ -86,6 +86,18 @@ export const ROOM_EXTENSIONS = Object.freeze(['revive', 'sharedLp', 'dupBand', '
 /** Default of each room extension (a new room starts with these). */
 export const ROOM_EXTENSIONS_DEFAULT = Object.freeze({ revive: true, sharedLp: false, dupBand: false, bossPanel: true, deployCapOff: false });
 /**
+ * 房间的「玩法扩展」是否全为默认 (author 2026-10-13): false = 用了非默认设置 (开了 sharedLp/dupBand/deployCapOff,
+ * 或关了默认的 revive/bossPanel) → 该局属「非正规」, **不写入任何排行榜** (server/lobby.js onMatchEnd)。
+ */
+export function extensionsAreDefault(ext) {
+  const e = ext || {};
+  return ROOM_EXTENSIONS.every((k) => {
+    const d = !!ROOM_EXTENSIONS_DEFAULT[k];
+    const v = e[k] === undefined ? d : !!e[k]; // 缺省 = 取默认值
+    return v === d;
+  });
+}
+/**
  * 房间人数 (host-only, room.setOptions maxPlayers): the sizes the room's 玩法扩展 panel offers as chips, and the default
  * of a new room (4, the official roster). The absolute seat cap is MAX_SEATS.
  */
@@ -223,12 +235,14 @@ export const ENDLESS = Object.freeze({
   ECON_TRANSFER_SLOTS: 3,  // 弹窗里「转职」货位数 (每个盟约一张: 图标 = 盟约图标)
   ECON_EQUIP_SLOTS: 2,     // 弹窗里「装备」货位数
   ECON_RELIC_SLOTS: 2,     // 弹窗里「藏品」货位数 (花资金直接买一件藏品, 与 3 选 1 藏品是另一条获取途径)
-  // 藏品货位定价: 按稀有度 (白/蓝/金/彩) 固定 + 随商店周期 ×GROWTH (author 2026-10-13)
-  ECON_RELIC_PRICE: Object.freeze({ white: 40, blue: 70, gold: 120, color: 220 }),
-  ECON_RELIC_PRICE_GROWTH: 1.6,
-  ECON_PRICE_BASE: 6,      // 价格 = (BASE + tier×TIER) × GROWTH^(周期−1)
-  ECON_PRICE_TIER: 6,
-  ECON_PRICE_GROWTH: 1.6,
+  // 定价 (author 2026-10-13 改): **固定价** —— 不随回合涨 (旧版每 10 回合 ×1.6, 后期买不起)。资金消耗口改由「刷新费」承担。
+  ECON_TRANSFER_PRICE: 60, // 转职固定价 (作者 2026-10-13: 60)
+  ECON_EQUIP_PRICE: Object.freeze({ 1: 8, 2: 12, 3: 18, 4: 26, 5: 36, 6: 48 }), // 装备按阶固定价 (tier 1..6)
+  ECON_RELIC_PRICE: Object.freeze({ white: 20, blue: 35, gold: 60, color: 110 }), // 藏品按稀有度固定价 (白/蓝/金/彩)
+  // 刷新 (author 2026-10-13): 「刷新」按钮重新抽一批货; 价格 = ECON_REFRESH_BASE × ECON_REFRESH_MUL^已刷新次数 (首次 1, 每次翻倍)。
+  // **每个商店重置为 1** (新货架 → refreshes=0)。
+  ECON_REFRESH_BASE: 1,
+  ECON_REFRESH_MUL: 2,
   // 专属盟约「本命盟约」权重: 商店刷新出该盟约干员的概率 × (author 2026-10-12)
   CORE_BOND_SHOP_MUL: 3,
   // 怪物攻/防成长 (author 2026-10-13 重调): 攻击力**每回合成长 (比血量慢)**，但**上限跟着「干员血量倍率」走**

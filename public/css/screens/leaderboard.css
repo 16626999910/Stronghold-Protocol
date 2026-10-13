@@ -90,6 +90,10 @@
 .lb-table tr.is-mvp td:first-child { color: var(--mint-400); font-weight: 700; }
 .lb-mvp-tag { margin-left: .06rem; font-size: .11rem; padding: 0 .05rem; border-radius: .03rem; background: rgba(23, 249, 183, .16); color: var(--mint-400); }
 .lb-title { display: block; font-size: .12rem; color: var(--text-dim); }
+/* 无尽榜 · 队员的核心(专属)盟约 (leaderboard.js EndlessDetail) */
+.lb-detail__name { display: block; }
+.lb-core { display: inline-flex; align-items: center; gap: .03rem; margin-top: .02rem; font-size: .12rem; color: var(--mint-400); }
+.lb-core__ico { width: .16rem; height: .16rem; object-fit: contain; }
 
 .lb-empty { display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .5rem 0; color: var(--text-dim); text-align: center; }
 .lb-empty .icon { width: .5rem; height: .5rem; opacity: .5; }

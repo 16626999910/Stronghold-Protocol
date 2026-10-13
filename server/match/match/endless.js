@@ -270,18 +270,21 @@ export class MatchEndless {
 
   // —— 经济商店 (每 SHOP_EVERY 回合) -------------------------------------------------------------
 
-  /** 经济商店价格: (BASE + tier×TIER) × GROWTH^(周期−1)。 */
-  endlessEconPrice(tier, cycle) {
-    const t = Math.max(1, Math.floor(Number(tier) || 1));
-    const c = Math.max(1, Math.floor(Number(cycle) || 1));
-    return Math.max(1, Math.round((ENDLESS.ECON_PRICE_BASE + t * ENDLESS.ECON_PRICE_TIER) * Math.pow(ENDLESS.ECON_PRICE_GROWTH, c - 1)));
+  /** 装备固定价 (按阶 tier 1..6; 不随回合涨)。 */
+  endlessEconPrice(tier) {
+    const t = Math.max(1, Math.min(6, Math.floor(Number(tier) || 1)));
+    return Math.max(1, Math.round(ENDLESS.ECON_EQUIP_PRICE[t] || ENDLESS.ECON_EQUIP_PRICE[1]));
   }
 
-  /** 藏品货位价格: 按稀有度 (白/蓝/金/彩) × GROWTH^(周期−1)。 */
-  endlessRelicPrice(rarity, cycle) {
-    const base = ENDLESS.ECON_RELIC_PRICE[rarity] || ENDLESS.ECON_RELIC_PRICE.white;
-    const c = Math.max(1, Math.floor(Number(cycle) || 1));
-    return Math.max(1, Math.round(base * Math.pow(ENDLESS.ECON_RELIC_PRICE_GROWTH, c - 1)));
+  /** 藏品固定价 (按稀有度 白/蓝/金/彩)。 */
+  endlessRelicPrice(rarity) {
+    return Math.max(1, Math.round(ENDLESS.ECON_RELIC_PRICE[rarity] || ENDLESS.ECON_RELIC_PRICE.white));
+  }
+
+  /** 经济商店的刷新价: 首次 ENDLESS.ECON_REFRESH_BASE (1), 每次 ×ECON_REFRESH_MUL (翻倍)。 */
+  endlessEconRefreshPrice(refreshes) {
+    const n = Math.max(0, Math.floor(Number(refreshes) || 0));
+    return Math.max(1, Math.round(ENDLESS.ECON_REFRESH_BASE * Math.pow(ENDLESS.ECON_REFRESH_MUL, n)));
   }
 
   /** 抽 count 个不重复 (Fisher-Yates on a copy)。 */
@@ -298,7 +301,6 @@ export class MatchEndless {
   endlessEconOffer(ps, round) {
     const gd = this.gd;
     const rng = this.rngEndless || Math.random;
-    const cycle = Math.max(1, Math.floor((Number(round) || this.round) / ENDLESS.SHOP_EVERY));
     const entries = [];
     // 转职 (带 giveBondId 的装备)
     const transfers = [];
@@ -307,8 +309,8 @@ export class MatchEndless {
       if (typeof it.giveBondId !== 'string' || !gd.bond(it.giveBondId)) continue;
       transfers.push({ id, it });
     }
-    // 转职: 统一按「六阶道具」计价 → 所有转职同价 (ENDLESS.ECON_TRANSFER_SLOT 概念: tier 6)
-    const transferPrice = this.endlessEconPrice(6, cycle);
+    // 转职: 固定价 (ENDLESS.ECON_TRANSFER_PRICE)
+    const transferPrice = Math.max(1, Math.round(ENDLESS.ECON_TRANSFER_PRICE));
     for (const { id, it } of this._sample(rng, transfers, ENDLESS.ECON_TRANSFER_SLOTS)) {
       const bondName = gd.bond(it.giveBondId)?.name || it.giveBondId;
       entries.push({
@@ -316,9 +318,9 @@ export class MatchEndless {
         text: `转职为【${bondName}】盟约：携带者视为该盟约成员`, price: transferPrice, sold: false,
       });
     }
-    // 藏品 (花资金直接买一件藏品): 从藏品池按稀有度权重抽, 定价按稀有度 —— 与「每 RELIC_EVERY 关 3 选 1」是并行的另一条获取途径
+    // 藏品 (花资金直接买一件藏品): 从藏品池按稀有度权重抽, 固定价按稀有度 —— 与「每 RELIC_EVERY 关 3 选 1」是并行的另一条获取途径
     for (const d of rollRelics(rng, ps, round, ENDLESS.ECON_RELIC_SLOTS)) {
-      entries.push({ kind: 'relic', id: d.id, name: d.name, rarity: d.rarity, icon: d.icon || null, text: relicText(d), price: this.endlessRelicPrice(d.rarity, cycle), sold: false });
+      entries.push({ kind: 'relic', id: d.id, name: d.name, rarity: d.rarity, icon: d.icon || null, text: relicText(d), price: this.endlessRelicPrice(d.rarity), sold: false });
     }
     // 装备 (普通商店装备; 显示效果). 排除「转职」(另有转职货位) 与鸡肋的「销毁换资金」类小道具 (性价比太低)
     const level = ps && ps.shop ? ps.shop.level : 1;
@@ -336,22 +338,36 @@ export class MatchEndless {
     const clean = (s) => String(s || '').replace(/<@[^>]*>/g, '').replace(/<\/>/g, ' ').trim();
     for (const id of this._sample(rng, pool, ENDLESS.ECON_EQUIP_SLOTS)) {
       const it = gd.item(id);
-      entries.push({ kind: 'item', id, name: it?.name || id, tier: it?.tier, text: clean(it?.desc) || '装备', price: this.endlessEconPrice(it?.tier, cycle), sold: false });
+      entries.push({ kind: 'item', id, name: it?.name || id, tier: it?.tier, text: clean(it?.desc) || '装备', price: this.endlessEconPrice(it?.tier), sold: false });
     }
-    return { round: Number(round) || this.round, entries, bought: false };
+    return { round: Number(round) || this.round, entries, refreshes: 0 };
   }
 
-  /** 经济商店购买 (g.econBuy {idx}): 扣资金, 装备进「备战席」; **每个商店只能买 1 件**。 */
+  /** 经济商店刷新 (g.econRefresh): 扣资金、**重新抽一批货** (货位清空重来); 刷新价首次 1、每次翻倍; 已买的格子作废。
+   *  **不限购买件数**, 刷新只换货、不影响已买。 */
+  endlessEconRefresh(ps) {
+    const off = ps && ps.econOffer;
+    if (!off || !Array.isArray(off.entries)) return fail(ERR.BAD_TARGET, 'no offer');
+    const cost = this.endlessEconRefreshPrice(off.refreshes || 0);
+    if (ps.funds < cost) return fail(ERR.NO_FUNDS);
+    ps.spend(cost);
+    const fresh = this.endlessEconOffer(ps, off.round || this.round);
+    fresh.refreshes = (off.refreshes || 0) + 1;
+    ps.econOffer = fresh;
+    this.markPrivate(ps);
+    return OK;
+  }
+
+  /** 经济商店购买 (g.econBuy {idx}): 扣资金, 装备进「备战席」; **不限购买件数** (每个货位仍只买 1 次, 买完置灰)。 */
   endlessBuyEcon(ps, idx) {
     const off = ps && ps.econOffer;
-    if (!off || off.bought) return fail(ERR.BAD_TARGET, off && off.bought ? '本商店已购买' : 'no offer');
+    if (!off) return fail(ERR.BAD_TARGET, 'no offer');
     const e = off.entries[idx];
     if (!e || e.sold) return fail(ERR.BAD_TARGET);
     const price = Math.max(0, Math.round(Number(e.price) || 0));
     if (ps.funds < price) return fail(ERR.NO_FUNDS);
     ps.spend(price);
     e.sold = true;
-    off.bought = true; // 每个商店只能购买一个
     if (e.kind === 'relic') {
       // 藏品: 直接入手 (与 3 选 1 藏品同一套数据; 全队生效、与盟约联动)
       ps.relics[e.id] = (ps.relics[e.id] || 0) + 1;

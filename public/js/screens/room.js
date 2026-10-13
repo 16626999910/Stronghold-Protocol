@@ -12,7 +12,7 @@
 // Texts go through t() (docs/I18N.md).
 
 import { useEffect, useRef, useState } from '../../vendor/hooks.module.js';
-import { DIFFICULTIES, DIFFICULTY_NAMES, DIFFICULTY_COLORS, MAX_SEATS, ROOM_PLAYER_OPTIONS, DEFAULT_ROOM_PLAYERS, ROOM_EXTENSIONS, ROOM_EXTENSIONS_DEFAULT, MAX_SPECTATORS, BIG_TEAM_NO_BAN, poolCopyMulFor } from '../../../shared/constants.js';
+import { DIFFICULTIES, DIFFICULTY_NAMES, DIFFICULTY_COLORS, MAX_SEATS, ROOM_PLAYER_OPTIONS, DEFAULT_ROOM_PLAYERS, ROOM_EXTENSIONS, ROOM_EXTENSIONS_DEFAULT, MAX_SPECTATORS, BIG_TEAM_NO_BAN, poolCopyMulFor, extensionsAreDefault } from '../../../shared/constants.js';
 import {
   html, Button, Icon, MicroLabel, PingPill, AvatarFrame, DifficultyTag, DifficultyIcon, Tooltip, Modal, confirmDialog, doctorNo,
 } from '../ui/components.js';
@@ -283,11 +283,14 @@ function RoomOptionsButton({ room, isHost, busy, onSet }) {
     return () => { window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('keydown', onKey); };
   }, [open]);
   const ext = { ...ROOM_EXTENSIONS_DEFAULT, ...(room.extensions || {}) };
+  // 非默认 (开了 sharedLp/dupBand/deployCapOff, 或关了 revive/bossPanel) → 本局不进排行榜 (server/lobby.js onMatchEnd)
+  const nonDefault = !extensionsAreDefault(ext);
   return html`<div class="ropts-pop">
     <${Button} variant="secondary" size="lg" icon="bolt" active=${open} aria-expanded=${open ? 'true' : 'false'}
       onClick=${() => setOpen((v) => !v)}>${t('玩法扩展')}<//>
     ${open ? html`<div class="ropts" role="dialog" aria-label=${t('玩法扩展')}>
       <div class="ropts__head"><${Icon} name="bolt" /><span>${t('玩法扩展')}</span><${MicroLabel}>GAME OPTIONS<//></div>
+      ${nonDefault ? html`<p class="ropts__tip"><${Icon} name="warn" />${t('用了非默认设置：本局结果不计入排行榜')}</p>` : null}
       ${ROOM_EXTENSIONS.map((k) => {
         const on = ext[k] !== false;
         return html`<div class="ropts__row" key=${k}>

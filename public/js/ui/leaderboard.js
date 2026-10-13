@@ -10,7 +10,7 @@
 import { useState, useEffect } from '../../vendor/hooks.module.js';
 import { html, MicroLabel, Modal, Spinner } from './components.js';
 import { Img, GIcon, useGameData } from './gameComponents.js';
-import { enemyIconUrl } from './assetUrls.js';
+import { enemyIconUrl, bondIconUrl } from './assetUrls.js';
 import { data, useData } from '../data.js';
 import { net } from '../net.js';
 import { useStore, shallowEqual, serverNow } from '../store.js';
@@ -106,6 +106,7 @@ export function normalizeEndlessBoard(list) {
       players: (Array.isArray(e.players) ? e.players : []).filter((p) => p && typeof p === 'object').map((p) => ({
         name: String(p.name || ''), isBot: !!p.isBot, left: !!p.left, alive: !!p.alive,
         bandIds: Array.isArray(p.bandIds) ? p.bandIds.filter((x) => typeof x === 'string') : [],
+        exclusiveBond: typeof p.exclusiveBond === 'string' ? p.exclusiveBond : null, // 核心(专属)盟约
         title: p.title && typeof p.title === 'object' ? (p.title.name || null) : (typeof p.title === 'string' ? p.title : null),
         stats: p.stats && typeof p.stats === 'object' ? p.stats : {},
       })),
@@ -142,6 +143,15 @@ function EndlessDetail({ entry, onBack }) {
     ['打桩伤害', 'bossDamage'], ['总伤害', 'dmgDealt'], ['击杀', 'kills'], ['漏怪', 'leaks'],
     ['经济', 'gold'], ['合成', 'merges'], ['装备', 'itemsEquipped'],
   ];
+  const assets = data.get('assets');
+  // 核心(专属)盟约: 每个队员的核心盟约图标 + 名称 (leaderboard.js 记录 exclusiveBond)
+  const coreOf = (p) => {
+    if (!p.exclusiveBond) return null;
+    const name = data.lookup('bonds', p.exclusiveBond)?.name || p.exclusiveBond;
+    const url = bondIconUrl(assets, p.exclusiveBond);
+    return html`<span class="lb-core" title=${`${t('核心盟约')}：${name}`}>
+      ${url ? html`<${Img} class="lb-core__ico" src=${url} alt=${name} />` : null}${name}</span>`;
+  };
   return html`<div class="lb-detail">
     <button type="button" class="lb-back" onClick=${onBack}><${GIcon} name="chevronLeft" />${t('返回排行榜')}</button>
     <div class="lb-detail__head">
@@ -154,7 +164,7 @@ function EndlessDetail({ entry, onBack }) {
       <thead><tr><th>${t('队员')}</th>${cols.map(([label]) => html`<th class="num">${label}</th>`)}</tr></thead>
       <tbody>
         ${entry.players.map((p, i) => html`<tr key=${i}>
-          <td>${p.name}${p.title ? html`<span class="lb-title">${p.title}</span>` : null}</td>
+          <td><span class="lb-detail__name">${p.name}${p.title ? html`<span class="lb-title">${p.title}</span>` : null}</span>${coreOf(p)}</td>
           ${cols.map(([, key]) => html`<td class="num">${fmtDamage(p.stats[key])}</td>`)}
         </tr>`)}
       </tbody>

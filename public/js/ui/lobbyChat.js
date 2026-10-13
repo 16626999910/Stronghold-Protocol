@@ -75,7 +75,7 @@ export const closeLobbyChat = () => chatStore.set({ open: false });
 export function LobbyChatButton() {
   const { unread, open } = useStore((s) => ({ unread: s.unread, open: s.open }), shallowEqual, chatStore);
   if (open) return null;
-  return html`<button type="button" class="lc-pill" onClick=${openLobbyChat} title=${t('大厅聊天')} aria-label=${t('大厅聊天')}>
+  return html`<button type="button" class=${`lc-pill${unread ? ' is-unread' : ''}`} onClick=${openLobbyChat} title=${t('大厅聊天')} aria-label=${t('大厅聊天')}>
     <${Icon} name="chat" class="lc-pill__ico" />
     <span class="lc-pill__label">${t('大厅聊天')}</span>
     ${unread ? html`<span class="lc-pill__dot num">${unread > 99 ? '99+' : unread}</span>` : null}

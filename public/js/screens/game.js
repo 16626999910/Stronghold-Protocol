@@ -65,7 +65,7 @@
 // phase). Its pill reads 观战中, never "你已被淘汰"; its exit only leaves the seat (ui/matchChrome.js ExitModal).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from '../../vendor/hooks.module.js';
-import { PHASE, GEO, REVIVE_COST_LP, CHAT_FLOAT_MS } from '../../../shared/constants.js';
+import { PHASE, GEO, REVIVE_COST_LP } from '../../../shared/constants.js';
 import { html, Spinner, PhaseBanner, ResultDialog, Icon, Button, confirmDialog, closeAllDialogs, useTicker } from '../ui/components.js';
 import { useGameData, GIcon } from '../ui/gameComponents.js';
 import { useFieldView } from '../ui/fieldHost.js';
@@ -82,7 +82,7 @@ import { RewardOverlay } from '../ui/rewardOverlay.js';
 import { ChoiceOverlay } from '../ui/choiceOverlay.js';
 import { EnemyDrawer } from '../ui/enemyDrawer.js';
 import { Ticker } from '../ui/ticker.js';
-import { EmoteWheel, EmoteFloat, ChatFloat } from '../ui/emotes.js';
+import { EmoteWheel, EmoteFloat } from '../ui/emotes.js';
 import { EffectsList } from '../ui/effectsList.js';
 import { CombatHud } from '../ui/combatHud.js';
 import { SettingsModal, settingsStore, useSettings, updateSettings } from '../ui/settings.js';
@@ -112,7 +112,7 @@ import { ResultScreen } from './result.js';
 import { net } from '../net.js';
 import { store, useStore, shallowEqual, serverNow, isSpectating } from '../store.js';
 import { battleRunner, setBattleSpeedFactor, battleSpeedFactor } from '../battle/runner.js';
-import { isClientCombat, observeTarget, teammateProgress, cameraLayers, layerCamera, sidesOf, resumedWatch, followedScout } from '../battle/observe.js';
+import { isClientCombat, observeTarget, teammateProgress, cameraLayers, layerCamera, sidesOf, resumedWatch, followedScout, nameOf } from '../battle/observe.js';
 import { screenStrip, playerBonds, playerLayer, detailBondOwner, toggleBond, popupView } from '../ui/watchBonds.js';
 import { data, getMode } from '../data.js';
 import { audio, resultSpeaker, resultVoiceSlot } from '../audio.js';
@@ -433,7 +433,7 @@ function MatchScreen() {
     reentryRef.current = null;
     viewModeRef.current = 'battle';
     snapUnitsRef.current = new Map();
-    view.enterBattle(field);
+    view.enterBattle(field, { alone: !!pub?.endless });
     const early = evBufRef.current.get(field.fieldId);
     evBufRef.current.delete(field.fieldId);
     const earlySnap = snapBufRef.current.get(field.fieldId);
@@ -723,12 +723,14 @@ function MatchScreen() {
     const now = Date.now();
     return emotes.filter((e) => now - e.at < bubbleMs).slice(-6);
   })();
-  // 横穿屏幕的文字聊天（作者 2026-10-11）：与表情同款从右往左；服务端只发一条 m.chat（与表情同一条冷却）
-  const chatFloats = (() => {
+  // 局内打字 (作者 2026-10-13): 不再全屏滚动 —— 在该玩家队友栏行内短暂显示 (teamPanel chats), 另在「交流」面板留日志。
+  const chatBubbles = (() => {
     const now = Date.now();
-    return chats.filter((c) => now - c.at < CHAT_FLOAT_MS).slice(-6);
+    const m = new Map();
+    for (const c of chats) if (now - c.at < bubbleMs) m.set(c.playerId, c); // 后到覆盖 (chats 有序)
+    return m;
   })();
-  useTicker((bubbles.size || emoteFloats.length || chatFloats.length) ? 500 : 0); // re-render only while a bubble is showing (to expire it)
+  useTicker((bubbles.size || emoteFloats.length || chatBubbles.size) ? 500 : 0); // re-render only while a bubble is showing (to expire it)
   const lastEmote = useRef(emotes.length ? emotes[emotes.length - 1].seq : 0);
   useEffect(() => {
     const e = emotes[emotes.length - 1];
@@ -1363,9 +1365,6 @@ function MatchScreen() {
     ${emoteFloats.length ? html`<div class="gm__emote-floats" aria-hidden="true">
       ${emoteFloats.map((e) => html`<${EmoteFloat} key=${e.seq} id=${e.id} at=${e.at} ttl=${bubbleMs} lane=${e.seq % 6} />`)}
     </div>` : null}
-    ${chatFloats.length ? html`<div class="gm__chat-floats">
-      ${chatFloats.map((c) => html`<${ChatFloat} key=${c.seq} text=${c.text} at=${c.at} ttl=${CHAT_FLOAT_MS} lane=${c.seq % 6} />`)}
-    </div>` : null}
     ${tempNotice ? html`<${TempRowNotice} view=${view} count=${temp.count} items=${temp.items} label=${!drag && !facing}
       ready=${phase === PHASE.PREP && !!priv?.ready} />` : null}
     ${showPrep && view && viewKind !== 'loading' && priv && !pen ? html`<${StandInTags} view=${view} priv=${priv} getChess=${gd.chess} backups=${gd.backups} diyData=${{ chess: data.get('chess'), backups: data.get('backups') }} />` : null}
@@ -1396,7 +1395,7 @@ function MatchScreen() {
         </div>
       </div>
 
-      ${sandbox ? null : html`<${TeamPanel} pub=${pub} myId=${myId} watching=${watchingNow} bubbles=${bubbles} onWatch=${watchPlayer} cap=${gd.config?.lpCapPerRound ?? 10} uniteLocal=${uniteLocal}
+      ${sandbox ? null : html`<${TeamPanel} pub=${pub} myId=${myId} watching=${watchingNow} bubbles=${bubbles} chats=${chatBubbles} onWatch=${watchPlayer} cap=${gd.config?.lpCapPerRound ?? 10} uniteLocal=${uniteLocal}
         self=${Number.isFinite(priv?.lp) ? { lp: priv.lp, pending: liveLpNow.pending, unite: liveLpNow.unite, left: liveLpNow.left } : null}
         observe=${cc ? { canObserve: (p) => observeTarget(p, pub, myId, { observing: watchingOther, ownDone: localDone }), observing: watchingOther, onBack: backHome } : null} />`}
 
@@ -1441,7 +1440,7 @@ function MatchScreen() {
         onPick=${(o, i) => { if (priv.exclusiveOffer) actions.exclusive(o.bond); else if (priv.relicOffer) actions.relic(i); else actions.decision(i); }} />` : null}
 
       ${!sandbox && !watchingOther && priv?.econOffer && priv.econOffer.round !== econSeenRound ? html`<${EconShopOverlay}
-        offer=${priv.econOffer} onBuy=${(i) => actions.econBuy(i)} onClose=${() => setEconSeenRound(priv.econOffer.round)} />` : null}
+        offer=${priv.econOffer} onBuy=${(i) => actions.econBuy(i)} onRefresh=${() => actions.econRefresh()} onClose=${() => setEconSeenRound(priv.econOffer.round)} />` : null}
 
       ${combat || mode === 'settle' ? html`<${CombatHud} pub=${pub} myId=${myId} watching=${watchingNow} hud=${hud} myDone=${!!myDone && alive}
         spectating=${!alive} spectator=${spectator} onWatch=${watchField}
@@ -1462,7 +1461,7 @@ function MatchScreen() {
       <${Ticker} />
 
       <div class="gm__corner">
-        ${spectator || sandbox ? null : html`<${EmoteWheel} open=${emoteOpen} onToggle=${setEmoteOpen} onSend=${(id) => actions.emote(id)} onChat=${(text) => actions.chat(text)} disabled=${conn.status !== 'online'} />`}
+        ${spectator || sandbox ? null : html`<${EmoteWheel} open=${emoteOpen} onToggle=${setEmoteOpen} onSend=${(id) => actions.emote(id)} onChat=${(text) => actions.chat(text)} chats=${chats} nameOf=${(pid) => nameOf(pub, pid)} disabled=${conn.status !== 'online'} />`}
         <button type="button" class="gm__gear" aria-label=${t('设置')} title=${t('设置')} onClick=${() => setSettingsOpen(true)}><${GIcon} name="gear" /></button>
         <button type="button" class="gm__gear gm__guide" aria-label=${t('玩法说明')} title=${t('玩法说明')} onClick=${() => openGuide(0)}><${Icon} name="book" /></button>
         <${FullscreenButton} class="gm__gear gm__fs" />
@@ -1475,6 +1474,7 @@ function MatchScreen() {
       ${bondPop ? html`<${BondPopup} bondId=${bondPop.bondId} entry=${bondPop.entry} priv=${bondPop.priv} banned=${pub?.bannedChess || []} owner=${bondPop.name}
         off=${offBonds.has(bondPop.bondId)}
         noCap=${!!pub?.endless}
+        alone=${!!pub?.endless}
         place=${bpPlace} over=${!!resolved && bpPlace === dSide}
         onClose=${() => setBondOpen(null)} onMember=${(id, items, standInFor) => setDetail({ kind: 'chess', id, owner: bondPop.ownerId, items: items || null, standInFor: standInFor || null })} />` : null}
 

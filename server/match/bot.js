@@ -115,6 +115,8 @@ const PAIR_HIT = 8;
 const MAX_PAIRS = 4;
 /** Refreshes per prep at most (funds bound them first). */
 const MAX_REFRESHES = 16;
+/** 布局排练的步数上限 (≥ 常规波 ~1950): 无尽把 timeLimit ×2 后不封顶会在后期每个候选都跑满 ~7350 步 → 卡顿。 */
+const REHEARSAL_TICK_CAP = 2000;
 /** Spare bench units kept beyond the lineup at the prep start (pairs first). */
 const BENCH_BUDGET = 6;
 /** Shop level the bot aims for at the start of round r (index = round). */
@@ -1096,7 +1098,10 @@ export function* createRehearsalSteps(m, ps, chosen, plans) {
     if (failed) break;
     yield;
   }
-  const cap = Math.ceil(((wave.timeLimit || 60) + 5) * 30);
+  // 排练的步数上限: 常规波 (timeLimit≈60) ≈1950 步; 无尽把 timeLimit ×BATTLE_TIME_MUL(2, 240s) 后本会到 ~7350 步/候选,
+  // 而后期敌人打不死 → 每场排练都跑满上限 → 一波清完紧接着的下一 PREP 卡 1~3 秒 (作者 2026-10-13 反馈「90 几波通关卡顿」)。
+  // 封顶到 REHEARSAL_TICK_CAP (≥ 常规 1950, 不影响常规局) 即可。
+  const cap = Math.min(Math.ceil(((wave.timeLimit || 60) + 5) * 30), REHEARSAL_TICK_CAP);
   let i = 0;
   let t = 0;
   let bestScore = -Infinity;

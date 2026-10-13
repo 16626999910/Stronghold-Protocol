@@ -15,6 +15,9 @@
   color: var(--text-hi); font: inherit; font-size: .15rem; font-weight: 700; cursor: pointer;
 }
 .lc-pill:hover { background: rgba(78, 216, 175, .1); }
+/* 未读: 同「问题反馈」按钮的闪烁高亮 (keyframes fb-unread 在 theme.css) */
+.lc-pill.is-unread { border-color: var(--gold, #ffb454); color: var(--gold, #ffce8a); animation: fb-unread 1.1s var(--ease-in-out) infinite; }
+.lc-pill.is-unread .lc-pill__ico { color: var(--gold, #ffb454); }
 .lc-pill__ico { width: .22rem; height: .22rem; color: var(--mint-400); flex: none; }
 .lc-pill__dot {
   flex: none; min-width: .18rem; height: .18rem; padding: 0 .04rem; border-radius: 999px;

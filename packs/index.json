@@ -18,7 +18,7 @@
       "lang": "en",
       "fallback": [],
       "complete": true,
-      "strings": 1217,
+      "strings": 1221,
       "files": {
         "ui": "/i18n/en.json",
         "data": "/data/i18n/en.json"
@@ -55,7 +55,7 @@
         "正",
         "載"
       ],
-      "strings": 1212,
+      "strings": 1216,
       "files": {
         "ui": "/i18n/ja.json",
         "data": "/data/i18n/ja.json"
@@ -79,7 +79,7 @@
       ],
       "complete": true,
       "machineTranslated": true,
-      "strings": 1212,
+      "strings": 1216,
       "files": {
         "ui": "/i18n/ko.json",
         "data": "/data/i18n/ko.json"
@@ -114,7 +114,7 @@
         "正",
         "載"
       ],
-      "strings": 1212,
+      "strings": 1216,
       "files": {
         "ui": "/i18n/zh-TW.json",
         "data": "/data/i18n/zh-TW.json"

@@ -53,6 +53,7 @@ export const actions = {
   bandSkip: () => act('g.bandSkip'),
   buy: (slot) => act('g.buy', { slot }),
   econBuy: (idx) => act('g.econBuy', { idx }, { sfx: 'buy' }), // 经济商店弹窗: 买转职/装备
+  econRefresh: () => act('g.econRefresh', {}, { sfx: 'refresh' }), // 经济商店弹窗: 刷新货架
   refresh: () => act('g.refresh'),
   freeze: () => act('g.freeze'),
   levelUp: () => act('g.levelUp'),

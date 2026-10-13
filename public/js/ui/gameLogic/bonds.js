@@ -50,32 +50,61 @@ export function nextThreshold(count, thresholds) {
 }
 
 /**
+ * 转职 (无尽狂潮): a `giveBondId` item worn by an operator IS the 转职 for its bond while the match grants bonds alone
+ * (`alone` = m.public.endless / the battle spec's `bondGrantAlone`). Outside endless such an item is ordinary equipment
+ * (it grants nothing without a 变形同构体, `canGiveBond`), so the helper returns null — the client then draws the item's
+ * own icon / name. Same signal the server counts with (server/match/bondsMeta.js pieceBonds `grantAlone`; the battle:
+ * server/sim/content/support unitBonds `u.grantBondAlone`).
+ * @param {string|{id:string}|null|undefined} item an item id or { id } piece
+ * @param {(id:string)=>any} [getItem] items.json lookup
+ * @param {boolean} [alone] the match grants a giveBondId item its bond alone (endless mode)
+ * @returns {string|null} the bond id it transfers to, else null
+ */
+export function transferBond(item, getItem = () => null, alone = false) {
+  if (!alone) return null;
+  const id = typeof item === 'string' ? item : item?.id;
+  if (typeof id !== 'string' || !id) return null;
+  const r = getItem(id);
+  if (!isObj(r) || r.canGiveBond) return null;
+  return typeof r.giveBondId === 'string' && r.giveBondId ? r.giveBondId : null;
+}
+
+/**
  * Bonds granted by 变形同构体: an item with `canGiveBond` worn together with an item that has a `giveBondId` makes the
  * wearer a member of that other item's bond (band 变形者集群 "与特定装备一同装备时装备者将视为特定盟约成员"; the item's
  * talent, character_table trap_1073_acarm073, lists the 14 pairings). The same rule as the server's count
  * (server/match/bondsMeta.js pieceBonds) and the battle's (server/sim/content/support unitBonds).
+ *
+ * `alone` (无尽狂潮 转职): additionally, a `giveBondId` item grants its bond **by itself** (no 变形同构体, one item).
+ * With `alone` false the behaviour is exactly the 变形同构体 rule above.
  * @param {Array<string|{id:string}>|null|undefined} items the carried items (ids or { id } pieces)
  * @param {(id:string)=>any} [getItem] items.json lookup
+ * @param {boolean} [alone] the match grants bonds alone (endless mode)
  * @returns {string[]}
  */
-export function grantedBonds(items, getItem = () => null) {
+export function grantedBonds(items, getItem = () => null, alone = false) {
   const list = Array.isArray(items) ? items : [];
-  if (list.length < 2) return [];
   const recs = list.map((it) => getItem(typeof it === 'string' ? it : it?.id)).filter(isObj);
-  if (!recs.some((r) => r.canGiveBond)) return [];
   const out = [];
-  for (const r of recs) if (!r.canGiveBond && typeof r.giveBondId === 'string' && r.giveBondId && !out.includes(r.giveBondId)) out.push(r.giveBondId);
+  if (list.length >= 2 && recs.some((r) => r.canGiveBond)) {
+    for (const r of recs) if (!r.canGiveBond && typeof r.giveBondId === 'string' && r.giveBondId && !out.includes(r.giveBondId)) out.push(r.giveBondId);
+  }
+  if (alone) {
+    for (const r of recs) if (!r.canGiveBond && typeof r.giveBondId === 'string' && r.giveBondId && !out.includes(r.giveBondId)) out.push(r.giveBondId);
+  }
   return out;
 }
 
 /**
- * A chess piece's bonds: its record's + those its 变形同构体 pairing grants (grantedBonds) — the detail card's chips.
+ * A chess piece's bonds: its record's + those its 变形同构体 pairing (or a 转职 `alone`) grants (grantedBonds) — the
+ * detail card's chips.
  * @param {any} chess chess.json record @param {Array<string|{id:string}>|null|undefined} items @param {(id:string)=>any} [getItem]
+ * @param {boolean} [alone] the match grants bonds alone (endless 转职)
  * @returns {string[]}
  */
-export function pieceBondIds(chess, items, getItem = () => null) {
+export function pieceBondIds(chess, items, getItem = () => null, alone = false) {
   const out = (Array.isArray(chess?.bonds) ? chess.bonds : []).filter((b) => typeof b === 'string');
-  for (const b of grantedBonds(items, getItem)) if (!out.includes(b)) out.push(b);
+  for (const b of grantedBonds(items, getItem, alone)) if (!out.includes(b)) out.push(b);
   return out;
 }
 
@@ -166,8 +195,9 @@ export function harmonyMembers(priv, getChess = () => null) {
  * @param {(id:string)=>any} [getChess]
  * @param {(id:string)=>any} [getItem] items.json lookup (the 变形同构体 pairings)
  * @param {((p: any) => any)|null} [pieceRecord] the record of one of the pieces (default: getChess(p.id))
+ * @param {boolean} [alone] the match grants bonds alone (endless 转职: a lone giveBondId item is a member — grantedBonds)
  */
-export function bondMembers(bond, priv, banned = [], getChess = () => null, getItem = () => null, pieceRecord = null) {
+export function bondMembers(bond, priv, banned = [], getChess = () => null, getItem = () => null, pieceRecord = null, alone = false) {
   const bannedSet = banned instanceof Set ? banned : new Set(Array.isArray(banned) ? banned : []);
   const members = Array.isArray(bond?.visibleMembers) && bond.visibleMembers.length ? bond.visibleMembers : (Array.isArray(bond?.members) ? bond.members : []);
   const baseOf = (id) => getChess(id)?.baseId || (typeof id === 'string' ? id.replace(/_b$/, '_a') : id);
@@ -177,7 +207,7 @@ export function bondMembers(bond, priv, banned = [], getChess = () => null, getI
   const memberSet = new Set(members);
   /** base id → { on: on the board?, hand: in the hand?, items: the wearer's item ids } — operators of the player that join this bond through 变形同构体 */
   const granted = new Map();
-  const grants = (p) => typeof bond?.bondId === 'string' && grantedBonds(p.items, getItem).includes(bond.bondId);
+  const grants = (p) => typeof bond?.bondId === 'string' && grantedBonds(p.items, getItem, alone).includes(bond.bondId);
   /** base id → { on, hand, rec } — the player's 自选 pieces whose operator carries this bond */
   const diy = new Map();
   const diyOf = (p, on, hand) => {

@@ -31,6 +31,8 @@ function trimPlayer(p) {
   const s = p.stats && typeof p.stats === 'object' ? p.stats : {};
   return {
     name: String(p.name ?? '').slice(0, 32),
+    // 核心(专属)盟约 (author 2026-10-13): 排行榜点开可查看该队每人的核心盟约
+    exclusiveBond: (typeof p.exclusiveBond === 'string' && /^[A-Za-z]{1,24}$/.test(p.exclusiveBond)) ? p.exclusiveBond : null,
     isBot: !!p.isBot,
     left: !!p.left,
     alive: !!p.alive,

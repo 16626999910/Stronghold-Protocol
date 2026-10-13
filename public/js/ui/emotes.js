@@ -244,7 +244,7 @@ export function ChatFloat({ text, ttl = CHAT_FLOAT_MS, at, lane = 0 }) {
  * @param {{ onSend: (id:string)=>void, open: boolean, onToggle: (open:boolean)=>void, disabled?: boolean,
  *   cooldownMs?: number }} props
  */
-export function EmoteWheel({ onSend, onChat, open, onToggle, disabled = false, cooldownMs = EMOTE_COOLDOWN_MS }) {
+export function EmoteWheel({ onSend, onChat, open, onToggle, chats = null, nameOf = null, disabled = false, cooldownMs = EMOTE_COOLDOWN_MS }) {
   useData('local');
   useEffect(() => { ensureEmoteCss(); }, []);
   const [page, setPage] = useState(lastThemeIndex);
@@ -370,6 +370,11 @@ export function EmoteWheel({ onSend, onChat, open, onToggle, disabled = false, c
           onInput=${(e) => setText(e.target.value)} />
         <button type="submit" class="ewheel__chat-send" disabled=${cooling || disabled}>${t('发送')}</button>
       </form>
+      ${Array.isArray(chats) && chats.length ? html`<div class="ewheel__log" role="log" aria-label=${t('聊天记录')}>
+        ${chats.slice(-6).map((c) => html`<div key=${c.seq} class="ewheel__log-line">
+          <b class="ewheel__log-name">${nameOf ? nameOf(c.playerId) : ''}</b><span class="ewheel__log-text">${c.text}</span>
+        </div>`)}
+      </div>` : null}
       <div class="ewheel__viewport" onPointerDown=${onPointerDown} onPointerMove=${onPointerMove}
         onPointerUp=${(e) => endDrag(e, false)} onPointerCancel=${(e) => endDrag(e, true)} onWheel=${onWheel}>
         <div key=${theme.themeId} class=${cx('ewheel__page', dir > 0 && 'is-from-right', dir < 0 && 'is-from-left', dx !== 0 && 'is-dragging')}

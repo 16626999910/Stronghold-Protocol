@@ -388,6 +388,7 @@ export function LobbyScreen() {
       <div class="topbar__center">
         <${MicroLabel} tone="mint">SIMULATION PROTOCOL SELECT<//>
         <h1 class="topbar__title">${t('选择模拟协议')}</h1>
+        <span class="lobby-qgroup">${t('Q群 {n}', { n: '1104088471' })}</span>
       </div>
       <div class="topbar__right">
         <${AnnounceButton} class="lobby-ann" />

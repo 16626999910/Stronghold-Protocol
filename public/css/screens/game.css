@@ -356,6 +356,15 @@
 .team__frame--plain { inset: -.04rem; background: none; -webkit-mask: none; mask: none; border: 2px solid var(--mint-500); box-shadow: 0 0 .14rem rgba(78, 216, 175, .65); }
 .team__row.is-self.is-team .pavatar { box-shadow: none; }
 .team__bubble { position: absolute; left: calc(100% + .06rem); top: 50%; transform: translateY(-50%); width: max-content; max-width: 3.2rem; }
+/* 局内打字 (author 2026-10-13): 玩家文字在队友栏行内短暂显示 (取代全屏滚动; 发送者一眼可见) */
+.team__chat {
+  position: absolute; left: calc(100% + .06rem); top: 50%; transform: translateY(-50%);
+  width: max-content; max-width: 3.4rem; z-index: 3;
+  padding: .03rem .07rem; border-radius: .05rem;
+  background: rgba(8, 11, 10, .92); border: 1px solid var(--mint-600, #3fbf98); border-left: 3px solid var(--mint-500);
+  color: var(--text-hi); font-size: .12rem; line-height: 1.25; white-space: pre-wrap; word-break: break-word;
+  box-shadow: 0 .08rem .2rem rgba(0, 0, 0, .5);
+}
 /* 前往查看 / 返回战场 (research 09 §3.1: tapping a teammate's avatar expands a mint button under it) */
 .team__row.is-open .pavatar { box-shadow: 0 0 0 2px var(--mint-400), 0 0 .2rem rgba(23, 249, 183, .45); }
 .team__row.is-open .team__info { background: linear-gradient(90deg, rgba(13, 44, 36, .92), rgba(8, 11, 10, 0)); }

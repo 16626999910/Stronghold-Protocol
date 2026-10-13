@@ -1877,7 +1877,9 @@ function kitAmiya(ab, e) {
     const hits = [];
     for (let k = 1; k <= AMIYA_GATE_RANGE; k++) hits.push(frontOf(g.tileR, g.tileC, g.dir, k));
     for (const u of b.allies()) {
-      if (!u.alive) continue;
+      if (!u.alive || !u.deployed) continue;
+      // 隐匿 (叙拉古 6 / 伪装服…) 的干员不被敌方技能的整条直线选中 (targeting.js areaSelectable)
+      if (!areaSelectable(g, u)) continue;
       if (hits.some(([r, c]) => u.tileR === r && u.tileC === c)) hurt(b, g, u, dmg, 'arts');
     }
     b.fx('beam', { x: g.x, y: g.y, kind: 'gate', to: g.dir });
@@ -1909,7 +1911,7 @@ function kitAmiya(ab, e) {
     for (const [dr, dc] of AMIYA_DUST_VECS) {
       for (let k = 1; k <= 8; k++) {
         const r = e.tileR + dr * k, c = e.tileC + dc * k;
-        const u = b.allies().find((x) => x.alive && x.tileR === r && x.tileC === c);
+        const u = b.allies().find((x) => x.alive && x.deployed && x.tileR === r && x.tileC === c && areaSelectable(e, x));
         if (u) { b.addBuff(u, { key: 'boss:amiyaDust', duration: AMIYA_DUST_DUR, refresh: 'replace', mods: { aspd: AMIYA_DUST_ASPD }, visible: true, status: 'aspdDown' }); break; }
       }
       b.fx('beam', { x: e.x, y: e.y, kind: 'dust', tx: e.tileC + dc * 8, ty: e.tileR + dr * 8 });
@@ -2128,7 +2130,7 @@ function kitSuiXiang(ab, e) {
     {
       cd: 15, icd: 8, cond: () => e.alive && !P.reviving && P.form === 1,
       fire(b, e2) {
-        const all = b.allies().filter((a) => a.alive && a.deployed);
+        const all = b.allies().filter((a) => a.alive && a.deployed && areaSelectable(e2, a)); // 隐匿 (叙拉古 6/伪装服) 不被敌方技能选中
         // 远程单位判定：干员的射程在 rangeGrid、不在 s.rangeRadius，所以优先看 profile.melee（和 ai.js 同一判据）
         const ranged = all.filter((a) => (a.profile && a.profile.melee === false) || (a.s && a.s.rangeRadius > 0.5));
         const picks = balanced(ranged.length ? ranged : all, e2.tileC, 3);   // 左右均衡
@@ -2138,6 +2140,7 @@ function kitSuiXiang(ab, e) {
         for (const u of picks) {
           b.fx('lightning', { from: e2.id, to: u.id, x: u.x, y: u.y });   // 岁相 → 各远程单位的惊雷（紫色闪电）
           zone(b, { x: u.x, y: u.y, r: 1.3, life: 3, iv: 0.5, kind: 'suiThunder', fxKind: 'suiThunder',
+            pick: (x, y, r) => areaAllies(b, e2, x, y, r),   // 范围 tick 也要跳过隐匿干员
             tick: (us) => { for (const a of us) hurt(b, e2, a, dmg * 0.5, 'arts', { tags: ['suiThunder'] }); } });
         }
       },
@@ -2147,7 +2150,7 @@ function kitSuiXiang(ab, e) {
       cd: 18, icd: 8, cond: () => e.alive && !P.reviving && P.form === 2,
       fire(b, e2) {
         // 近战（阻挡/相邻）单位：岁相不可阻挡 ⇒ 常无阻挡者；改为对**左右两半各取最近一名**（两边都照顾）
-        const all = b.allies().filter((a) => a.alive && a.deployed);
+        const all = b.allies().filter((a) => a.alive && a.deployed && areaSelectable(e2, a)); // 隐匿不被敌方技能选中
         const targets = e2.blockedBy && e2.blockedBy.alive ? [e2.blockedBy] : balanced(all, e2.tileC, 2);
         if (!targets.length) return;
         b._ev(['atk', e2.id, targets[0].id, 'suiSlash']);   // 播放【天坠】攻击动作
@@ -2173,7 +2176,7 @@ function kitSuiXiang(ab, e) {
         // 朝下的大范围：覆盖**整个宽度**（左右两半都吃到），十方吐纳
         const cLo = R.c0, cHi = R.c1;
         // 左右各取最近一名作为吐息起点（两边都要看到火焰；攻击动作朝向左侧第一目标）
-        const picks = balanced(b.allies().filter((a) => a.alive && a.deployed), e2.tileC, 2);
+        const picks = balanced(b.allies().filter((a) => a.alive && a.deployed && areaSelectable(e2, a)), e2.tileC, 2);
         b._ev(['atk', e2.id, picks[0] ? picks[0].id : null, 'suiBreath']);   // 播放【十方吐纳】攻击动作
         if (picks.length) for (const p of picks) b.fx('suiBreath', { id: e2.id, target: p.id, x: p.x, y: p.y, r: 1, dur: 1.4 });
         else b.fx('suiBreath', { id: e2.id, target: null, x: e2.x, y: e2.y, r: 1, dur: 1.4 });
@@ -2183,6 +2186,7 @@ function kitSuiXiang(ab, e) {
         const h = b.every(0.5, () => {
           for (const a of b.allies()) {
             if (!a.alive || !a.deployed) continue;
+            if (!areaSelectable(e2, a)) continue;   // 隐匿 (叙拉古 6/伪装服) 不被敌方技能的吐息命中
             if (Math.round(a.tileR) >= rStart) hurt(b, e2, a, dmg * 0.5, 'arts', { tags: ['suiBreath'] });
           }
           left -= 0.5;
@@ -2208,7 +2212,7 @@ function pinHalf(b, e, half) {
 const MEPHI_KEY = 'enemy_1507_mephi';   // 梅菲斯特（本体）
 const FAUST_KEY = 'enemy_1508_faust';   // 浮士德（梅菲斯特的 kit 开场补刷，与本体算同一个 boss）
 const MEPHI_HALF = 'L';
-const MEPHI_RES_MUL = 2;          // 高法抗（官方「拥有很高的法术抵抗力」[ASSUMED 倍率]）
+const MEPHI_RES_MUL = 1;          // 法抗倍率（作者 2026-10-13: 2 → 1，法抗减半；base 60 ×2=120 太肉打不动 → ×1）
 const MEPHI_HEAL_R = 6, MEPHI_HEAL_TARGETS = 3, MEPHI_HEAL_SCALE = 1.2;
 const MEPHI_REGEN_RATIO = 0.01;   // 回血光环：每秒 maxHp 的 1%（近似「自然回血翻倍」）
 function kitMephisto(ab, e) {
@@ -2226,7 +2230,20 @@ function kitMephisto(ab, e) {
         const row = Math.round(((R.r0 ?? 0) + (R.r1 ?? 5)) / 2);
         b.after(0.05, () => {
           if (b.enemies.some((o) => o.alive && o.defId === FAUST_KEY)) return;
-          const u = b.spawnEnemy(FAUST_KEY, { pos: [row, col], tag: 'boss', mods: e2.mods, ownerPlayerId: e2.ownerId, sourcePlayerId: e2.sourcePlayerId });
+          // 作者 2026-10-13: 之前直接取右半场「矩形中点」出生 —— 若那格是墙体/不可通行, 浮士德会**卡在terra里**
+          // (halfWalk 从不可走点 findPath 失败 → 无路线 → 永不移动、只站桩输出)。改为就近找**可通行**格出生。
+          const g = b.grid;
+          const passable = (r, c) => { try { return g && typeof g.groundPassable === 'function' ? g.groundPassable(r, c) : true; } catch { return true; } };
+          let pos = null, bd = Infinity;
+          const r0 = R.r0 ?? 0, r1 = R.r1 ?? 5;
+          for (let r = Math.max(0, r0 - 2); r <= r1 + 2; r++) {
+            for (let c = c0; c <= c1; c++) {
+              if (!passable(r, c)) continue;
+              const d = Math.abs(r - row) + Math.abs(c - col);
+              if (d < bd) { bd = d; pos = [r, c]; }
+            }
+          }
+          const u = b.spawnEnemy(FAUST_KEY, { pos: pos || [row, col], tag: 'boss', mods: e2.mods, ownerPlayerId: e2.ownerId, sourcePlayerId: e2.sourcePlayerId });
           if (u) b.fx('summon', { x: u.x, y: u.y, id: e2.id, key: FAUST_KEY, n: 1 });
         });
       },
@@ -2263,8 +2280,9 @@ function kitMephisto(ab, e) {
 // 守**右半场**巡逻（loopRoute + halfWalk('R')）。（官方第 3 招「周期性召唤弩炮台」暂未做——依赖装置素材，留 TODO。）
 const FAUST_HALF = 'R';
 const FAUST_SPAWN_INV = 6;        // 登场无敌秒数 [ASSUMED]
-const FAUST_SNIPE_CD = 8, FAUST_SNIPE_ICD = 4, FAUST_SNIPE_SCALE = 1.2;
-const FAUST_BOLT_CD = 22, FAUST_BOLT_ICD = 12, FAUST_BOLT_SCALE = 2.4;  // 「攻击力加倍」的特殊弩箭 [ASSUMED 2.4×]
+const FAUST_SNIPE_CD = 12, FAUST_SNIPE_ICD = 6, FAUST_SNIPE_SCALE = 1.2;   // 作者 2026-10-13: 频率调低 (8→12)
+const FAUST_BOLT_CD = 30, FAUST_BOLT_ICD = 16, FAUST_BOLT_SCALE = 2.4;    // 「攻击力加倍」的特殊弩箭 [ASSUMED 2.4×]；作者 2026-10-13: 频率调低 (22→30)
+const FAUST_DMG_MUL = 0.5;        // 作者 2026-10-13: 浮士德整体伤害 ×0.5 (攻击力减半 → 普攻/狙击/弩箭全减半)
 // （官方第 3 招「召唤弩炮台」**不做**——作者 2026-10-12：算了，不要这弩炮了。）
 function kitFaust(ab, e) {
   const speed = (PROJECTILE_SPEEDS && (PROJECTILE_SPEEDS.bolt || PROJECTILE_SPEEDS.arrow)) || 14;
@@ -2288,6 +2306,8 @@ function kitFaust(ab, e) {
         pinHalf(b, e2, FAUST_HALF);
         b.addBuff(e2, { key: 'boss:faustUnblockable', persist: true, visible: true, flags: { unblockable: true } });
         b.addBuff(e2, { key: 'boss:faustSpawnInv', duration: FAUST_SPAWN_INV, visible: true, flags: { invulnerable: true } });
+        // 作者 2026-10-13「浮士德伤害削弱一半」: 攻击力 ×0.5 → 普攻 + 狙击 + 弩箭 全部减半
+        b.addBuff(e2, { key: 'boss:faustDmg', persist: true, visible: true, mods: { atkMul: FAUST_DMG_MUL } });
       },
     },
     { cd: FAUST_SNIPE_CD, icd: FAUST_SNIPE_ICD, cond: () => e.alive, fire(b, e2) { shoot(b, e2, farthest(b, e2), FAUST_SNIPE_SCALE); } },

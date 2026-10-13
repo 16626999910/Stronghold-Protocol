@@ -99,7 +99,7 @@
 //     a player seat (the seat is kept and given back on resume).
 
 import { randomBytes, randomInt } from 'node:crypto';
-import { ERR, DIFFICULTIES, MAX_SEATS, MAX_AI_SEATS, MAX_SPECTATORS, ROOM_PLAYER_OPTIONS, DEFAULT_ROOM_PLAYERS, ROOM_EXTENSIONS, ROOM_EXTENSIONS_DEFAULT, ROOM_CODE_LEN, modeIdFor, ENDLESS } from '../shared/constants.js';
+import { ERR, DIFFICULTIES, MAX_SEATS, MAX_AI_SEATS, MAX_SPECTATORS, ROOM_PLAYER_OPTIONS, DEFAULT_ROOM_PLAYERS, ROOM_EXTENSIONS, ROOM_EXTENSIONS_DEFAULT, ROOM_CODE_LEN, modeIdFor, ENDLESS, extensionsAreDefault } from '../shared/constants.js';
 import { checkLoadout, checkNotOwned, checkDiyPicks } from '../shared/protocol.js';
 import { encode, isDroppable, isErrCode, sendRaw, sendSession } from './net.js';
 import { getData as defaultGetData, lookup } from './data.js';
@@ -1472,12 +1472,15 @@ export class Lobby {
     room.replay = this.buildReplay(room, ctx);
     setImmediate(() => this.disposeMatchCtx(ctx));
     this.log.info(`[lobby] ${room.code} match #${room.matchCount} ended`);
+    // 玩法扩展 (author 2026-10-13): 只要房间的「玩法扩展」用了**非默认**设置 (开启 sharedLp/dupBand/deployCapOff, 或关掉
+    // 默认的 revive/bossPanel), 这局就是「非正规」→ **不写入任何排行榜** (成绩不可比)。
+    const ranked = extensionsAreDefault(room.extensions);
     // 大厅排行榜 (this build): a 隐藏核心 CLEAR offers its run to the board — only the TOP difficulty counts and only
     // the FASTEST run per 隐藏首领 is kept (server/leaderboard.js). The record keeps the room owner's name, the run's
     // MVP and the settlement rows (the client's detail view). Best-effort: never breaks the match teardown.
     try {
       const s = summary;
-      if (s && s.victory && s.hiddenCleared && s.hiddenBossId) {
+      if (ranked && s && s.victory && s.hiddenCleared && s.hiddenBossId) {
         const bossName = this.safeData()?.bosses?.[s.hiddenBossId]?.name ?? s.hiddenBossId;
         const owner = (room.hostId && room.seatOf(room.hostId)?.name) || '';
         const entry = this.leaderboard.record({ ...s, bossId: s.hiddenBossId, bossName, owner, teamSize: room.seats.filter(Boolean).length });
@@ -1489,7 +1492,7 @@ export class Lobby {
     // 无尽模式排行榜 (阶段7): a 打桩-ended 无尽局 offers its 通过回合数 and 打桩累计伤害 to the two boards (top teams each).
     try {
       const s = summary;
-      if (s && s.reason === 'endless') {
+      if (ranked && s && s.reason === 'endless') {
         const owner = (room.hostId && room.seatOf(room.hostId)?.name) || '';
         const rec = this.endlessBoard.record({ ...s, owner });
         if (rec.rounds || rec.damage) this.log.info(`[endlessBoard] ${owner || '?'}: 回合 ${s.roundsPassed} · 打桩 ${Math.round(Number(s.dummyDmg) || 0)}`);

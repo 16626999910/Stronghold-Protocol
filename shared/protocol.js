@@ -428,6 +428,7 @@ export const C2S = {
   'g.bandFocus': { bandId: nullable(isId), $optional: ['bandId'] },
   'g.buy': { slot: (v) => isInt(v, 0, 15) },
   'g.econBuy': { idx: (v) => isInt(v, 0, 15) }, // 经济商店弹窗: 买转职/装备
+  'g.econRefresh': {}, // 经济商店弹窗: 刷新货架 (首次 1 币, 每次翻倍)
   'g.refresh': {},
   'g.freeze': {},
   'g.levelUp': {},
