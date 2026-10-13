@@ -14,19 +14,25 @@
 import { useEffect, useRef, useState } from '../../vendor/hooks.module.js';
 import { DIFFICULTIES, DIFFICULTY_NAMES, DIFFICULTY_COLORS, ROOM_CODE_LEN, MAX_SEATS, MAX_SPECTATORS, ROOM_PLAYER_OPTIONS, DEFAULT_ROOM_PLAYERS, modeIdFor, ERR, APP_VERSION } from '../../../shared/constants.js';
 import { html, Button, Icon, MicroLabel, Modal, Panel, TextField, PingPill, AvatarFrame, Tooltip, Spinner, DifficultyIcon, doctorNo } from '../ui/components.js';
+import { HubBackdrop, HubRadar, useHubBackdrop, backdropTheme, BackdropSettings, BackdropGlyph } from '../ui/hubBackdrop.js';
 import { toast, toastError } from '../ui/toasts.js';
 import { GuideButton } from '../ui/guide.js';
 import { AnnounceButton, announceAutoOpen } from '../ui/announcements.js';
 import { OnlinePill } from '../ui/online.js';
-import { MatchmakingButton } from '../ui/matchmaking.js';
+import { MatchmakingButton, MatchmakingPanel } from '../ui/matchmaking.js';
 import { FeedbackButton } from '../ui/feedback.js';
 import { LobbyLeaderboard } from '../ui/leaderboard.js';
 import { LoadoutButton } from './loadout.js';
 import { net, identity } from '../net.js';
 import { store, useStore, shallowEqual, loadPref, savePref, serverNow } from '../store.js';
-import { getMode, getStage, useData } from '../data.js';
+import { data, getMode, getStage, useData } from '../data.js';
+import { avatarSrc, playerAvatarUrl } from '../assets.js';
 import { t, tc, N_ } from '../../../shared/i18n.js';
 import { PreloadWidget } from '../ui/preload.js';
+import { Emblem } from './title.js';
+import { ProtocolScene } from '../ui/protocolScene.js';
+
+const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
 /** Official mode texts (activity_table act2autochess.modeDataDict), fallback when config.json is absent. */
 export const MODE_TEXT = {
@@ -190,23 +196,159 @@ function ModeCard({ card, selected, onSelect }) {
   </button>`;
 }
 
-function DifficultyCard({ roomMode, difficulty, selected, onSelect }) {
-  const info = difficultyInfo(roomMode, difficulty);
-  return html`<button type="button" class=${`diff-card${selected ? ' is-selected' : ''}`}
-      style=${`--d-color:${DIFFICULTY_COLORS[difficulty]}`} onClick=${() => onSelect(difficulty)} aria-pressed=${selected ? 'true' : 'false'}>
-    <span class="diff-card__bar" aria-hidden="true"></span>
-    <span class="diff-card__head">
-      <${DifficultyIcon} difficulty=${difficulty} class="diff-card__glyph" />
-      <span class="diff-card__name">${t(DIFFICULTY_NAMES[difficulty])}</span>
-      <span class="diff-card__code num">${info.code}</span>
-      <span class="diff-card__meta">
-        <span class="num">${info.rounds}</span> ${tc('rounds', '回合')}${info.hidden ? html`<span class="diff-card__hidden">${t('+ 隐秘核心')}</span>` : null}
-      </span>
-    </span>
-    <span class="diff-card__desc">${info.desc}</span>
-    <span class="diff-card__effects">${info.effects.map((e) => html`<span key=${e}>${e}</span>`)}${info.stageNote ? html`<span key="stage" class="diff-card__stage"><${Icon} name="rook" />${info.stageNote}</span>` : null}</span>
-    <span class="diff-card__check" aria-hidden="true"><${Icon} name="check" /><span>${t('已选定')}</span></span>
+/** Hub 底部大入口（参考版的 hub-entry）：图标 + 英文小标 + 名称。 */
+function HubEntry({ name, en, icon, tone = 'mint', badge = null, onClick }) {
+  return html`<button type="button" class=${`hub-entry hub-entry--${tone}`} onClick=${onClick}>
+    <span class="hub-entry__icon"><${Icon} name=${icon} /></span>
+    <span class="hub-entry__en">${en}</span>
+    <span class="hub-entry__name">${name}${badge ? html`<span class="mode-beta">${badge}</span>` : null}</span>
+    <span class="hub-entry__corner" aria-hidden="true"></span>
   </button>`;
+}
+
+/** 缺人同盟 (参考版的 hub-recruit)：右上角的组队大厅摘要——列出还缺人的公开同盟，点「加入」直接进，点「全部」开房间大厅。 */
+function RecruitCard({ rooms, online, busy, onJoin, onAll }) {
+  const open = (Array.isArray(rooms) ? rooms : [])
+    .filter((r) => r && typeof r.code === 'string' && !r.inMatch && (r.players || 0) > 0 && (r.players || 0) < (r.maxSeats || 4))
+    .sort((a, b) => ((a.maxSeats || 4) - (a.players || 0)) - ((b.maxSeats || 4) - (b.players || 0)) || (b.players || 0) - (a.players || 0));
+  return html`<section class="hub-recruit" aria-label=${t('缺人同盟')}>
+    <header class="hub-recruit__head">
+      <span class=${`hub-recruit__pulse${open.length ? ' is-live' : ''}`} aria-hidden="true"></span>
+      <span class="hub-recruit__title">${t('缺人同盟')}</span>
+      <span class="hub-recruit__en">RECRUITING</span>
+      <span class="hub-recruit__n num">${open.length}</span>
+      <button type="button" class="hub-recruit__all" onClick=${onAll}>${t('全部')}<${Icon} name="chevronRight" /></button>
+    </header>
+    <div class="hub-recruit__list">
+      ${open.length ? open.slice(0, 3).map((r) => {
+        const max = r.maxSeats || 4;
+        const name = r.hostName || `${t('同盟')} #${r.code}`;
+        return html`<div key=${r.code} class="hub-recruit__row">
+          <span class="hub-recruit__info">
+            <span class="hub-recruit__name">${name}</span>
+            <span class="hub-recruit__meta">
+              <span class="hub-recruit__diff">${DIFFICULTY_NAMES[r.difficulty] ? t(DIFFICULTY_NAMES[r.difficulty]) : r.difficulty}</span>
+              ${r.endless ? html`<span class="t-dim">${t('无尽狂潮')}</span>` : null}
+              <span class="t-dim num">${r.code}</span>
+            </span>
+          </span>
+          <span class="hub-recruit__need">${t('缺')}<b class="num">${max - (r.players || 0)}</b>${t('人')}</span>
+          <${Button} variant="primary" size="sm" icon="users" disabled=${!online}
+            loading=${busy === `join:${r.code}`} onClick=${() => onJoin(r.code)}>${t('加入')}<//>
+        </div>`;
+      }) : html`<div class="hub-recruit__empty">
+        <span>${t('暂时没有缺人的同盟')}</span>
+      </div>`}
+    </div>
+  </section>`;
+}
+
+/** The hand-drawn ring of the 已选定 stamp (two loose strokes); reference v024. */
+function StampRing() {
+  return html`<svg class="pcard__ring" viewBox="0 0 120 100" aria-hidden="true" focusable="false">
+    <path pathLength="1" d="M18 62C6 34 34 8 70 10c34 2 48 30 38 54-10 24-46 32-72 22C20 80 10 66 16 50" />
+    <path pathLength="1" d="M30 20c22-14 62-12 78 10 12 18 4 44-16 54" />
+  </svg>`;
+}
+
+/**
+ * One difficulty of 选择模拟协议 (reference v024 ProtoCard, our difficultyInfo): name, description, effects and the
+ * extras (code, rounds, 隐秘核心, battlefields) below; the chosen one slides out with a glow and the 已选定 stamp.
+ * Exported so the room's 选择模拟协议 overlay (room.js) reuses the same card.
+ * @param {{ roomMode: 'solo'|'coop', difficulty: string, selected: boolean, onSelect: (d: string) => void }} props
+ */
+export function ProtoCard({ roomMode, difficulty, selected, onSelect }) {
+  const info = difficultyInfo(roomMode, difficulty);
+  return html`<button type="button" class=${`pcard${selected ? ' is-on' : ''}`} style=${`--d-color:${DIFFICULTY_COLORS[difficulty]}`}
+      onClick=${() => onSelect(difficulty)} aria-pressed=${selected ? 'true' : 'false'}>
+    <span class="pcard__glow" aria-hidden="true"></span>
+    <span class="pcard__head">
+      <${DifficultyIcon} difficulty=${difficulty} class="pcard__glyph" />
+      <span class="pcard__name">${t(DIFFICULTY_NAMES[difficulty])}</span>
+    </span>
+    <span class="pcard__desc">${info.desc}</span>
+    <span class="pcard__effects">${info.effects.map((e) => html`<span key=${e}>${e}</span>`)}</span>
+    <span class="pcard__meta">
+      ${info.code ? html`<span class="num">${info.code}</span>` : null}
+      <span><b class="num">${info.rounds}</b> ${tc('rounds', '回合')}${info.hidden ? t(' + 隐秘核心') : ''}</span>
+      ${info.stageNote ? html`<span>${info.stageNote}</span>` : null}
+    </span>
+    <span class="pcard__stamp" aria-hidden="true"><${StampRing} /><span class="pcard__tick"><${Icon} name="check" /></span><span class="pcard__ok">${t('已选定')}</span></span>
+  </button>`;
+}
+
+/**
+ * 选择模拟协议 (reference v024, adapted to this build): full screen, the picture of the selected difficulty at the
+ * left (ui/protocolScene.js), the difficulty cards down the right with the 已选定 stamp, 开始模拟 at the bottom right.
+ * Kept from our start sheet: 房间人数 chips, 私密房间 and 快速匹配 (startMatchmaking) in the foot, the "正在连接服务器…"
+ * hint / disabled logic. Esc or ‹ returns to the hub.
+ * @param {{ card: {name:string, en:string, desc:string}, roomMode: 'solo'|'coop', difficulty: string,
+ *   onDifficulty: Function, onClose: Function, online: boolean, busy: string|null, onCreate: Function, onQueue: Function,
+ *   roomSize: number, onRoomSize: Function, privateRoom: boolean, onPrivate: Function }} props
+ */
+function ProtocolSelect({ card, roomMode, difficulty, onDifficulty, onClose, online, busy, onCreate, onQueue, roomSize, onRoomSize, privateRoom, onPrivate }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
+  const info = difficultyInfo(roomMode, difficulty);
+  const label = roomMode === 'solo' ? t('开始独立模拟') : t('创建同盟');
+  const hint = !online ? t('正在连接服务器…')
+    : roomMode === 'solo' ? t('独自调配阵容，按自己的节奏开始模拟')
+    : t('创建后可邀请好友或添加 AI 队友');
+  return html`<div class="proto" style=${`--d-color:${DIFFICULTY_COLORS[difficulty]}`} data-difficulty=${difficulty} role="dialog" aria-label=${t('选择模拟协议')}>
+    <div class="proto__bg" aria-hidden="true"></div>
+    <header class="proto-top">
+      <button type="button" class="proto-back" onClick=${onClose} title=${t('返回大厅 (Esc)')} aria-label=${t('返回大厅')}>
+        <${Icon} name="chevronLeft" /><span class="proto-back__home"><${Icon} name="rook" /></span>
+      </button>
+      <div class="proto-title">
+        <h2>${t('选择模拟协议')}</h2>
+        <span class="proto-title__mode">${t(card.name)}<i>${card.en}</i></span>
+      </div>
+    </header>
+    <div class="proto-body">
+      <section class="proto-stage">
+        <${ProtocolScene} key=${difficulty} difficulty=${difficulty} />
+        <div class="proto-brief">
+          <span class="proto-brief__code num">${info.code}</span>
+          <b class="proto-brief__name">${t(DIFFICULTY_NAMES[difficulty])}</b>
+          <p>${t(card.desc)}</p>
+        </div>
+      </section>
+      <section class="proto-side">
+        <div class="proto-list" role="radiogroup" aria-label=${t('模拟难度')}>
+          ${DIFFICULTIES.map((d) => html`<${ProtoCard} key=${d} roomMode=${roomMode} difficulty=${d} selected=${difficulty === d} onSelect=${onDifficulty} />`)}
+        </div>
+        <div class="proto-foot">
+          ${roomMode === 'coop' ? html`<div class="proto-opts">
+            <label class="proto-private" title=${t('不在公开大厅显示，仅通过房间码或邀请加入')}>
+              <input type="checkbox" checked=${privateRoom} onChange=${(e) => onPrivate(e.currentTarget.checked)} /><span>${t('私密房间')}</span>
+            </label>
+            <${Button} variant="ice" size="md" icon="signal" disabled=${!online} onClick=${onQueue}>${t('快速匹配')}<//>
+          </div>
+          <div class="proto-size">
+            <span class="proto-size__label">${t('房间人数')}</span>
+            <div class="pcount__chips" role="radiogroup" aria-label=${t('房间人数')}>
+              ${ROOM_PLAYER_OPTIONS.map((n) => html`<button key=${n} type="button" role="radio"
+                aria-checked=${roomSize === n ? 'true' : 'false'}
+                class=${`pcount__chip${roomSize === n ? ' is-active' : ''}`} disabled=${!online}
+                onClick=${() => { if (roomSize !== n) onRoomSize(n); }}>${n}</button>`)}
+            </div>
+          </div>` : null}
+          <p class="proto-hint">${hint}</p>
+          <${Tooltip} block=${true} text=${online ? null : t('正在连接服务器…')}>
+            <button type="button" class="proto-start" disabled=${!online || busy === 'create'} onClick=${onCreate}>
+              <span class="proto-start__mark" aria-hidden="true"><span class="proto-start__rook"><i>[</i><${Icon} name="rook" /><i>]</i></span><small>STRONGHOLD<br />PROTOCOL</small></span>
+              <span class="proto-start__label">${busy === 'create' ? html`<${Spinner} size="sm" />` : null}${label}</span>
+              <span class="proto-start__deco" aria-hidden="true"></span>
+            </button>
+          <//>
+        </div>
+      </section>
+    </div>
+  </div>`;
 }
 
 /** Milliseconds from `now` to the NEXT local `hour:minute` (mirrors server/http/restart.js msUntilTime). */
@@ -261,11 +403,92 @@ export function RestartCountdown({ at }) {
   </div>`;
 }
 
+/**
+ * 个人头像 (this build): the 游戏本体 头像列表 (`data/avatars.json` → `data.get('avatars')`) the 更换头像 picker draws —
+ * every entry with an id + url, in the file's own order (默认头像 first, then 活动头像). Unknown / broken → [].
+ * @param {any} avatarsData `data.get('avatars')` ({ default, list:[{ id, name, type, url }] })
+ * @returns {{ id: string, name: string, type: string, url: string }[]}
+ */
+export function avatarPickerList(avatarsData) {
+  const list = avatarsData && Array.isArray(avatarsData.list) ? avatarsData.list : [];
+  return list
+    .filter((a) => a && typeof a.id === 'string' && a.id && typeof a.url === 'string' && a.url)
+    .map((a) => ({ id: a.id, name: String(a.name || a.id), type: String(a.type || ''), url: a.url }));
+}
+
+/** One avatar cell of the picker (falls back to a glyph when the image fails or the URL is unknown). */
+function AvatarCell({ id, name, url, active, onPick }) {
+  const [bad, setBad] = useState(false);
+  return html`<button type="button" class=${cx('avatar-cell', active && 'is-current')} role="option" aria-selected=${active ? 'true' : 'false'}
+      title=${name} onClick=${() => onPick(id)}>
+    ${url && !bad
+      ? html`<img class="avatar-cell__img" src=${url} alt=${name} loading="lazy" draggable=${false} onError=${() => setBad(true)} />`
+      : html`<span class="avatar-cell__glyph">${[...(name || '?')][0] || '?'}</span>`}
+    <span class="avatar-cell__name">${name}</span>
+  </button>`;
+}
+
+/**
+ * 更换头像 picker (this build): a scrollable grid of every 游戏本体头像 (所有头像素材), the current one highlighted, plus
+ * 恢复默认. Click to pick (an avatarId), or 恢复默认 to clear it (the default 「符号」 shows).
+ * @param {{ current?: string|null, onPick: (avatar: string|null) => void, onClose: Function }} props
+ */
+export function AvatarPicker({ current = null, onPick, onClose }) {
+  useData('assets', 'avatars');
+  const assets = data.get('assets');
+  const avatarsData = data.get('avatars');
+  const list = avatarPickerList(avatarsData);
+  const currentId = current || (avatarsData && avatarsData.default) || null;
+  return html`<${Modal} open=${true} title=${t('更换头像')} micro="AVATAR" tone="mint" onClose=${onClose} width="min(600px, 94vw)">
+    <div class="avatar-picker">
+      <div class="avatar-picker__grid" role="listbox" aria-label=${t('更换头像')}>
+        ${list.map((it) => html`<${AvatarCell} key=${it.id} id=${it.id} name=${it.name} url=${playerAvatarUrl(assets, it.id) || it.url} active=${it.id === currentId} onPick=${onPick} />`)}
+      </div>
+      <div class="avatar-picker__foot">
+        <${Button} variant="secondary" block=${true} icon="refresh" onClick=${() => onPick(null)}>${t('恢复默认')}<//>
+      </div>
+    </div>
+  <//>`;
+}
+
+/**
+ * The lobby's top-right identity chip (this build: clicking the avatar opens the 更换头像 picker). Presentational, so the
+ * vnodes can be walked in tests.
+ * @param {{ me: any, assets?: any, avatars?: any, onClick?: Function }} props
+ */
+export function LobbyMeChip({ me, assets, avatars, onClick }) {
+  const src = avatarSrc(assets, avatars, me && me.avatar);
+  return html`<button type="button" class="me-chip" onClick=${onClick} title=${t('更换头像')} aria-label=${t('更换头像')}>
+    <${AvatarFrame} size="sm" name=${me?.name} seat=${0} self=${true} src=${src} />
+    <div class="me-chip__text">
+      <span class="me-chip__name">${me?.name || t('博士')}</span>
+      <${MicroLabel}>${me?.playerId != null ? `DOCTOR #${doctorNo(me.playerId)}` : 'DOCTOR'}<//>
+    </div>
+  </button>`;
+}
+
 /** Lobby screen component. */
 export function LobbyScreen() {
   const me = useStore((s) => s.me, shallowEqual);
   const conn = useStore((s) => s.connection, shallowEqual);
-  useData('config');
+  useData('config', 'assets', 'avatars'); // 头像 (this build): the me-chip avatar resolves from the asset manifest
+  // 头像: the picker modal; picking sets it locally, persists it and tells the server (net.setAvatar → me.avatar)
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  // Hub 弹层: 娱乐玩法 ('fun') / 排行榜 ('lb')
+  const [overlay, setOverlay] = useState(null);
+  // 缺人同盟 (右上角那张卡)：公开房间列表来自 store.mm（lobby.list → lobby.rooms 推送）
+  const mm = useStore((s) => s.mm, shallowEqual);
+  const [mmOpen, setMmOpen] = useState(false);
+  // 大厅背景 (reference v024): the procedural backdrop + its theme / 自定义图片 pref and settings dialog.
+  const bg = useHubBackdrop();
+  const [bgOpen, setBgOpen] = useState(false);
+  const pickAvatar = (id) => {
+    const avatar = typeof id === 'string' && id ? id : null;
+    store.patch('me', { avatar });
+    identity.saveAvatar(avatar);
+    net.setAvatar(avatar);
+    setAvatarOpen(false);
+  };
   // 更新公告: entering the lobby, if there is anything unread the viewer opens by itself (author 2026-10-11).
   useEffect(() => { announceAutoOpen(); }, []);
   const [roomMode, setRoomMode] = useState(() => (loadPref('lobby.mode', 'coop') === 'solo' ? 'solo' : 'coop'));
@@ -280,6 +503,8 @@ export function LobbyScreen() {
     return ROOM_PLAYER_OPTIONS.includes(n) ? n : DEFAULT_ROOM_PLAYERS;
   });
   const [busy, setBusy] = useState(null);
+  // 私密房间 (选择模拟协议 的脚部选项): co-op rooms created hidden — still joinable by 同盟密钥 (server room.create private).
+  const [privateRoom, setPrivateRoom] = useState(false);
   // 开始匹配 (the waiting stage): true while the lobby is inside the server 匹配池 at `roomSize`. No room is opened by
   // the caller — the player waits (spinner) until enough matchers of the same difficulty + size are pooled and the
   // server opens a fresh room for exactly them, or cancels (the modal's close / 取消匹配).
@@ -301,6 +526,14 @@ export function LobbyScreen() {
   // (server/lobby.js _matchFromPool — idempotent: out of the pool and back in, so one human never counts twice). A miss
   // is a plain `ok`; a hit (the 匹配池 opened a fresh hidden room for the group) broadcasts room.state, which sets
   // store.room and unmounts this screen (clearing the timer).
+  // 缺人同盟：进大厅就定时拉一次公开房间列表（面板关着也拉），喂右上角那张卡
+  useEffect(() => {
+    if (!online) return undefined;
+    net.send('lobby.list');
+    const id = setInterval(() => net.send('lobby.list'), 8000);
+    return () => clearInterval(id);
+  }, [online]);
+
   useEffect(() => {
     if (!searching || !online) return undefined;
     let stopped = false;
@@ -326,7 +559,7 @@ export function LobbyScreen() {
   };
   // 创建同盟 opens the room at the chosen 房间人数 (co-op); 开始独立模拟 needs no capacity.
   const create = () => run('create', () => net.request('room.create', {
-    mode: roomMode, difficulty, ...(roomMode === 'coop' ? { players: roomSize } : {}),
+    mode: roomMode, difficulty, ...(roomMode === 'coop' ? { players: roomSize, private: privateRoom } : {}),
   }));
   // 沙盒 (娱乐玩法): a solo room flagged sandbox — the in-match 控制台 sets the map / waves / boss / 倍率 / 羁绊层数.
   // No 模拟难度 here (the author 2026-10-11: 沙盒 just asks for a map): fixed 终极 internally.
@@ -346,6 +579,8 @@ export function LobbyScreen() {
     net.request('lobby.quickMatchCancel').catch(() => {});
     setSearching(false);
   };
+  // 快速匹配 (选择模拟协议 的脚部按钮): close the protocol screen, then enter the 匹配池 waiting stage.
+  const quickMatch = () => { setOverlay(null); startMatchmaking(); };
   const join = (c = code) => {
     // `onClick=${join}` hands the click EVENT as the first argument, and a default parameter only applies to
     // `undefined` — codeArg keeps an event target out of the key and falls back to the input field
@@ -377,140 +612,63 @@ export function LobbyScreen() {
     store.set((s) => ({ session: { ...s.session, entered: false } }));
   };
 
-  return html`<div class="screen lobby-screen">
+  return html`<div class="screen lobby-screen lobby-hub" data-hub-theme=${backdropTheme(bg)}>
+    <${HubBackdrop} bg=${bg} />
     <header class="topbar">
       <div class="topbar__left">
         <${Button} variant="ghost" size="sm" icon="chevronLeft" onClick=${backToTitle} title=${t('返回标题')}>${t('返回')}<//>
         <${PingPill} ms=${conn.ping} online=${online} />
         <${OnlinePill} class="lobby-online" />
         <span class="lobby-ver" title=${`当前版本 v${APP_VERSION}`}><${MicroLabel}>v${APP_VERSION}<//></span>
+        <span class="lobby-qgroup">${t('Q群 {n}', { n: '1104088471' })}</span>
       </div>
       <div class="topbar__center">
-        <${MicroLabel} tone="mint">SIMULATION PROTOCOL SELECT<//>
-        <h1 class="topbar__title">${t('选择模拟协议')}</h1>
-        <span class="lobby-qgroup">${t('Q群 {n}', { n: '1104088471' })}</span>
+        <${MicroLabel} tone="mint">STRONGHOLD PROTOCOL · ALLIANCE<//>
       </div>
       <div class="topbar__right">
         <${AnnounceButton} class="lobby-ann" />
+        <${Button} variant="ghost" size="sm" class="lobby-bg" onClick=${() => setBgOpen(true)} title=${t('大厅背景')}><${BackdropGlyph} /><//>
         <${GuideButton} class="lobby-guide" variant="secondary" label=${t('玩法说明')} />
         <${FeedbackButton} class="lobby-feedback" variant="secondary" size="sm" />
-        <${LoadoutButton} from="lobby" size="sm" class="lobby-loadout" label=${t('干员调配')} />
-        <div class="me-chip">
-          <${AvatarFrame} size="sm" name=${me.name} seat=${0} self=${true} />
-          <div class="me-chip__text">
-            <span class="me-chip__name">${me.name || t('博士')}</span>
-            <${MicroLabel}>${me.playerId != null ? `DOCTOR #${doctorNo(me.playerId)}` : 'DOCTOR'}<//>
-          </div>
-        </div>
+        <${LobbyMeChip} me=${me} assets=${data.get('assets')} avatars=${data.get('avatars')} onClick=${() => setAvatarOpen(true)} />
       </div>
     </header>
 
     <${RestartCountdown} at=${restartAt} />
 
-    <div class="lobby-body screen__scroll">
-      <section class="lobby-left">
-        <div class="section-label"><span class="section-label__idx num">01</span>${t('模拟方式')}<${MicroLabel}>MODE<//></div>
-        <div class="mode-cards">
-          ${MODE_CARDS.map((c) => html`<${ModeCard} key=${c.id} card=${c} selected=${roomMode === c.id} onSelect=${pickMode} />`)}
+    <main class="hub-stage">
+      <div class="hub-center">
+        <div class="hub-center__mark"><${HubRadar} bg=${bg} /><${Emblem} /></div>
+        <div class="hub-center__en">STRONGHOLD PROTOCOL <b>ALLIANCE</b></div>
+        <h1 class="hub-center__title">${t('卫戍协议：盟约')}</h1>
+      </div>
+
+      <aside class="hub-side">
+        <button type="button" class="hub-tile" onClick=${() => setOverlay('join')}>
+          <span class="hub-tile__icon"><${Icon} name="key" /></span>
+          <span class="hub-tile__text">
+            <span class="hub-tile__label">${t('密钥加入')}</span>
+            <span class="hub-tile__en">JOIN WITH KEY</span>
+          </span>
+        </button>
+      </aside>
+
+      <aside class="hub-right">
+        <${RecruitCard} rooms=${mm?.rooms} online=${online} busy=${busy} onJoin=${(c) => join(c)} onAll=${() => setMmOpen(true)} />
+        <div class="hub-right__plates">
+          <${LoadoutButton} from="lobby" size="lg" class="hub-plate hub-plate--loadout" label=${t('干员调配')} />
         </div>
+      </aside>
 
-        <div class="section-label"><span class="section-label__idx num">·</span>${t('房间大厅')}<${MicroLabel}>ROOM HALL<//></div>
-        <${Panel} class="mm-cta" tone="mint">
-          <div class="mm-cta__row">
-            <span class="mm-cta__text">
-              <span class="mm-cta__title">${t('匹配在线博士')}</span>
-              <span class="mm-cta__desc">${t('浏览服务器上公开的同盟房间并一键加入，也可以让系统直接把你送进最合适的那个。')}</span>
-            </span>
-            <span class="mm-cta__act">
-              <${OnlinePill} label=${false} />
-              <${MatchmakingButton} variant="primary" size="lg" />
-            </span>
-          </div>
-        <//>
-
-        <div class="section-label"><span class="section-label__idx num">03</span>${t('加入同盟')}<${MicroLabel}>JOIN WITH ALLIANCE KEY<//></div>
-        <${Panel} class="join-panel" tone="amber">
-          <div class="join-row">
-            <${TextField} size="code" icon="key" value=${code} placeholder=${t('输入同盟密钥 / 粘贴邀请链接')}
-              transform=${normalizeCode} onInput=${(v) => setCode(normalizeCode(v))} onEnter=${() => join()} />
-            <${Button} variant="amber" size="lg" icon="users" loading=${busy === 'join'} disabled=${!codeOk || !online} onClick=${() => join()}>${t('加入同盟')}<//>
-            <${Tooltip} text=${t('以观战者身份进入：不占博士席位，只能观看（每个同盟最多 {MAX_SPECTATORS} 名，模拟进行中也可进入）', { MAX_SPECTATORS })}>
-              <${Button} variant="secondary" size="lg" icon="eye" class="join-spectate" loading=${busy === 'spectate'} disabled=${!codeOk || !online} onClick=${spectate}>${t('观战')}<//>
-            <//>
-          </div>
-          <div class="join-foot">
-            ${recent.length ? html`<span class="t-lo">${t('最近的同盟')}</span>
-              ${recent.map((c) => html`<button key=${c} type="button" class="code-chip num" title=${t('填入密钥（不会直接加入）')}
-                onClick=${() => setCode(c)}>${c}</button>`)}`
-              : html`<span class="t-dim">${t('向同伴索取 {ROOM_CODE_LEN} 位同盟密钥，或直接打开邀请链接', { ROOM_CODE_LEN })}</span>`}
-          </div>
-        <//>
-
-        <div class="section-label"><span class="section-label__idx num">04</span>${t('娱乐玩法')}<${MicroLabel}>ENTERTAINMENT<//></div>
-        <${Panel} class="mm-cta" tone="mint">
-          <div class="mm-cta__row">
-            <span class="mm-cta__text">
-              <span class="mm-cta__title">${t('沙盒')}</span>
-              <span class="mm-cta__desc">${t('接下来自由探索吧')}</span>
-            </span>
-            <span class="mm-cta__act">
-              <${Button} variant="amber" size="lg" icon="rook" loading=${busy === 'sandbox'} disabled=${!online} onClick=${createSandbox}>${t('进入沙盒')}<//>
-            </span>
-          </div>
-          <div class="mm-cta__row">
-            <span class="mm-cta__text">
-              <span class="mm-cta__title">${t('无尽狂潮')}</span>
-              <span class="mm-cta__desc">${t('固定四人 · 无尽回合 · 打桩结算')}</span>
-            </span>
-            <span class="mm-cta__act">
-              <${Button} variant="amber" size="lg" icon="signal" loading=${busy === 'endless'} disabled=${!online} onClick=${createEndless}>${t('进入无尽')}<//>
-            </span>
-          </div>
-        <//>
-      </section>
-
-      <section class="lobby-right">
-        <div class="section-label"><span class="section-label__idx num">02</span>${t('模拟难度')}<${MicroLabel}>DIFFICULTY<//></div>
-        <div class="diff-list">
-          ${DIFFICULTIES.map((d) => html`<${DifficultyCard} key=${d} roomMode=${roomMode} difficulty=${d} selected=${difficulty === d} onSelect=${pickDifficulty} />`)}
-        </div>
-        <div class="create-box">
-          ${roomMode === 'coop' ? html`
-            <div class="create-box__size">
-              <span class="create-box__size-label">${t('房间人数')}</span>
-              <div class="pcount__chips" role="radiogroup" aria-label=${t('房间人数')}>
-                ${ROOM_PLAYER_OPTIONS.map((n) => html`<button key=${n} type="button" role="radio"
-                  aria-checked=${roomSize === n ? 'true' : 'false'}
-                  class=${`pcount__chip${roomSize === n ? ' is-active' : ''}`} disabled=${!online}
-                  onClick=${() => { if (roomSize !== n) pickRoomSize(n); }}>${n}</button>`)}
-              </div>
-            </div>` : null}
-          <div class=${`create-box__actions${roomMode === 'coop' ? ' is-split' : ''}`}>
-            <${Tooltip} block=${true} text=${online ? null : t('正在连接服务器…')}>
-              <${Button} variant="primary" size="xl" block=${true} iconRight="chevrons" loading=${busy === 'create'} disabled=${!online} onClick=${create}>
-                ${roomMode === 'solo' ? t('开始独立模拟') : t('创建同盟')}
-              <//>
-            <//>
-            ${roomMode === 'coop' ? html`
-              <${Tooltip} block=${true} text=${online ? t('按所选模拟难度与房间人数加入有空位的公开同盟，人满自动开始；没有合适的房间时会一直等待，可随时取消') : t('正在连接服务器…')}>
-                <${Button} variant="ice" size="xl" block=${true} icon="signal" disabled=${!online} onClick=${startMatchmaking}>
-                  ${t('开始匹配')}
-                <//>
-              <//>` : null}
-          </div>
-          <div class="create-box__hint">
-            ${online
-              ? html`<span>${roomMode === 'solo' ? t('创建后即可开始模拟') : t('创建后可邀请好友或添加 AI 队友')}</span>`
-              : html`<${Spinner} size="sm" label="CONNECTING" />`}
-          </div>
+      <section class="hub-entries" aria-label=${t('模拟方式')}>
+        <div class="hub-entries__row">
+          <div class="hub-entry-wrap"><${HubEntry} name=${t('独立模拟')} en="SOLO" icon="user" onClick=${() => { pickMode('solo'); setOverlay('solo'); }} /></div>
+          <div class="hub-entry-wrap"><${HubEntry} name=${t('同盟模拟')} en="ALLIANCE" icon="users" onClick=${() => { pickMode('coop'); setOverlay('coop'); }} /></div>
+          <div class="hub-entry-wrap"><${HubEntry} name=${t('娱乐玩法')} en="ENTERTAINMENT" icon="rook" tone="gold" onClick=${() => setOverlay('fun')} /></div>
+          <div class="hub-entry-wrap"><${HubEntry} name=${t('排行榜')} en="LEADERBOARD" icon="crown" tone="bright" onClick=${() => setOverlay('lb')} /></div>
         </div>
       </section>
-
-      <section class="lobby-library">
-        <div class="section-label"><span class="section-label__idx num">05</span>${t('排行榜')}<${MicroLabel}>LEADERBOARD<//></div>
-        <${LobbyLeaderboard} />
-      </section>
-    </div>
+    </main>
 
     ${searching ? html`<${Modal} open=${true} title=${t('正在匹配')} micro="MATCHMAKING" tone="mint"
         onClose=${cancelMatchmaking} width="min(400px, 92vw)">
@@ -521,6 +679,67 @@ export function LobbyScreen() {
         <${Button} variant="secondary" block=${true} icon="close" onClick=${cancelMatchmaking}>${t('取消匹配')}<//>
       </div>
     <//>` : null}
+
+    ${avatarOpen ? html`<${AvatarPicker} current=${me.avatar} onPick=${pickAvatar} onClose=${() => setAvatarOpen(false)} />` : null}
+
+    ${(overlay === 'solo' || overlay === 'coop') ? html`<${ProtocolSelect}
+      card=${MODE_CARDS.find((c) => c.id === roomMode) || MODE_CARDS[0]} roomMode=${roomMode} difficulty=${difficulty}
+      onDifficulty=${pickDifficulty} onClose=${() => setOverlay(null)} online=${online} busy=${busy}
+      onCreate=${create} onQueue=${quickMatch} roomSize=${roomSize} onRoomSize=${pickRoomSize}
+      privateRoom=${privateRoom} onPrivate=${setPrivateRoom} />` : null}
+
+    ${bgOpen ? html`<${Modal} open=${true} title=${t('大厅背景')} micro="BACKDROP" tone="mint" onClose=${() => setBgOpen(false)} width="min(620px, 96vw)">
+      <${BackdropSettings} bg=${bg} />
+    <//>` : null}
+    ${overlay === 'join' ? html`<${Modal} open=${true} title=${t('密钥加入')} micro="JOIN WITH ALLIANCE KEY" tone="amber" onClose=${() => setOverlay(null)} width="min(460px, 94vw)">
+      <${Panel} class="join-panel" tone="amber">
+        <div class="join-row">
+          <${TextField} size="code" icon="key" value=${code} placeholder=${t('输入同盟密钥 / 粘贴邀请链接')}
+            transform=${normalizeCode} onInput=${(v) => setCode(normalizeCode(v))} onEnter=${() => join()} />
+          <${Button} variant="amber" size="lg" icon="users" loading=${busy === 'join'} disabled=${!codeOk || !online} onClick=${() => join()}>${t('加入同盟')}<//>
+          <${Tooltip} text=${t('以观战者身份进入：不占博士席位，只能观看（每个同盟最多 {MAX_SPECTATORS} 名，模拟进行中也可进入）', { MAX_SPECTATORS })}>
+            <${Button} variant="secondary" size="lg" icon="eye" class="join-spectate" loading=${busy === 'spectate'} disabled=${!codeOk || !online} onClick=${spectate}>${t('观战')}<//>
+          <//>
+        </div>
+        <div class="join-foot">
+          ${recent.length ? html`<span class="t-lo">${t('最近的同盟')}</span>
+            ${recent.map((c) => html`<button key=${c} type="button" class="code-chip num" title=${t('填入密钥（不会直接加入）')}
+              onClick=${() => setCode(c)}>${c}</button>`)}`
+            : html`<span class="t-dim">${t('向同伴索取 {ROOM_CODE_LEN} 位同盟密钥，或直接打开邀请链接', { ROOM_CODE_LEN })}</span>`}
+        </div>
+      <//>
+    <//>` : null}
+
+    ${overlay === 'fun' ? html`<${Modal} open=${true} title=${t('娱乐玩法')} micro="ENTERTAINMENT" tone="mint" onClose=${() => setOverlay(null)} width="min(520px, 94vw)">
+      <div class="section-label"><span class="section-label__idx num">04</span>${t('娱乐玩法')}<${MicroLabel}>ENTERTAINMENT<//></div>
+      <${Panel} class="mm-cta" tone="mint">
+        <div class="mm-cta__row">
+          <span class="mm-cta__text">
+            <span class="mm-cta__title">${t('沙盒')}</span>
+            <span class="mm-cta__desc">${t('接下来自由探索吧')}</span>
+          </span>
+          <span class="mm-cta__act">
+            <${Button} variant="amber" size="lg" icon="rook" loading=${busy === 'sandbox'} disabled=${!online} onClick=${createSandbox}>${t('进入沙盒')}<//>
+          </span>
+        </div>
+        <div class="mm-cta__row">
+          <span class="mm-cta__text">
+            <span class="mm-cta__title">${t('无尽狂潮')}</span>
+            <span class="mm-cta__desc">${t('固定四人 · 无尽回合 · 打桩结算')}</span>
+          </span>
+          <span class="mm-cta__act">
+            <${Button} variant="amber" size="lg" icon="signal" loading=${busy === 'endless'} disabled=${!online} onClick=${createEndless}>${t('进入无尽')}<//>
+          </span>
+        </div>
+      <//>
+    <//>` : null}
+
+    ${overlay === 'lb' ? html`<${Modal} open=${true} title=${t('排行榜')} micro="LEADERBOARD" tone="mint" onClose=${() => setOverlay(null)} width="min(820px, 96vw)">
+      <div class="section-label"><span class="section-label__idx num">05</span>${t('排行榜')}<${MicroLabel}>LEADERBOARD<//></div>
+      <${LobbyLeaderboard} />
+    <//>` : null}
+
+    <${MatchmakingPanel} open=${mmOpen} onClose=${() => setMmOpen(false)} />
 
     <${PreloadWidget} />
   </div>`;

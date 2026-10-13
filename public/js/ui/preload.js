@@ -12,7 +12,7 @@
 // last session stopped (the store holds what already arrived).
 
 import { useState, useEffect, useMemo } from '../../vendor/hooks.module.js';
-import { html, Button, Icon, MicroLabel, Modal } from './components.js';
+import { html, Button, Icon, MicroLabel, Modal, confirmDialog } from './components.js';
 import { createStore, useStore, loadPref, savePref } from '../store.js';
 import { data } from '../data.js';
 import { assets } from '../assets.js';
@@ -257,6 +257,13 @@ export function PreloadWidget() {
               onClick=${() => { installed?.resume(); }}>${primaryLabel(s)}<//>`}
         <${Button} size="sm" variant="ghost" onClick=${() => openPreload()}>${t('资源管理')}<//>
         <${Button} size="sm" variant="ghost" disabled=${busy} onClick=${async () => {
+          const ok = await confirmDialog({
+            title: t('清空缓存'),
+            text: t('清空已预载的本地资源？下次进入相关画面需要重新下载。'),
+            okText: t('清空'),
+            danger: true,
+          });
+          if (!ok) return;
           setBusy(true);
           await installed?.clear();
           setBusy(false);

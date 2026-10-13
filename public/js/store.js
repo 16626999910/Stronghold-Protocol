@@ -2,7 +2,7 @@
 //
 // One app-wide store holds everything the UI renders from:
 //   connection  – socket status + latency (fed by net.js via main.js)
-//   me          – { playerId, name, token } from `welcome`
+//   me          – { playerId, name, token, avatar } from `welcome` (avatar = a chosen 游戏本体头像 id, or null)
 //   session     – { entered } (the player pressed 开始 on the title screen in this tab)
 //   room        – last `room.state` payload (without `t`) or null
 //   match       – { public, private, field, result } from the `m.*` pushes; `battle` = the local battle runner's
@@ -84,7 +84,7 @@ export const emptyMatch = () => ({ public: null, private: null, field: null, res
 /** Initial app state (exported for tests and resets). */
 export const initialState = Object.freeze({
   connection: { status: 'idle', ping: null, attempt: 0, retryAt: 0, lastError: null, everOnline: false },
-  me: { playerId: null, name: '', token: null },
+  me: { playerId: null, name: '', token: null, avatar: null },
   session: { entered: false },
   room: null,
   match: emptyMatch(),

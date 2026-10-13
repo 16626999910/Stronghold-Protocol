@@ -22,7 +22,7 @@ export const LOBBY_CHAT_DEFAULTS = Object.freeze({
 });
 
 /**
- * @typedef {{ id: number, playerId: string, name: string, status: 'lobby'|'room',
+ * @typedef {{ id: number, playerId: string, name: string, avatar?: string|null, status: 'lobby'|'room',
  *             kind: 'text'|'emote'|'party', text?: string, emote?: string, code?: string, at: number }} LobbyChatItem
  */
 
@@ -46,12 +46,12 @@ export class LobbyChat {
 
   /**
    * Append a message.
-   * @param {{ playerId: string, name: string, status: 'lobby'|'room', kind: 'text'|'emote'|'party',
+   * @param {{ playerId: string, name: string, avatar?: string|null, status: 'lobby'|'room', kind: 'text'|'emote'|'party',
    *           text?: unknown, emote?: unknown, code?: unknown }} input
    * @returns {LobbyChatItem | null} null when the message is refused (empty/oversized text, unknown emote, no code)
    */
-  push({ playerId, name, status, kind, text, emote, code }) {
-    const item = { id: this.seq, playerId: String(playerId ?? ''), name: cleanChatText(name, 32) || '', status, kind, at: this.now() };
+  push({ playerId, name, avatar, status, kind, text, emote, code }) {
+    const item = { id: this.seq, playerId: String(playerId ?? ''), name: cleanChatText(name, 32) || '', avatar: typeof avatar === 'string' && avatar ? avatar : null, status, kind, at: this.now() };
     if (kind === 'text') {
       const body = cleanChatText(text, this.opts.maxText);
       if (!body) return null;

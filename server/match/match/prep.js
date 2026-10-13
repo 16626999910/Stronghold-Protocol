@@ -136,7 +136,7 @@ export class MatchPrep {
     // 无尽模式 打桩环节: the prep on the boss map ended → run the 30 s 打桩 battle instead of a normal round
     if (this.endless && this.endless.dummy && this.endless.dummy.stage === 'prep') { this.startDummyBattle(); return; }
     const r = this.round;
-    // 无尽模式 首领战: R20 起每 10 回合一次真正的 final-assault (打完继续下一回合; 首领已由 startRound 抽好)
+    // 无尽模式 首领战: R10 起每 10 回合一次真正的 final-assault (打完继续下一回合; 首领已由 startRound 抽好)
     if (this.endless && this.endlessBossRound(r)) {
       this.hiddenLayerStats = hiddenLayerStats(this.gd, alive);
       this.startFinalAssault(false);

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "app": "0.2.3",
+  "app": "0.2.5",
   "packs": [
     {
       "id": "en",
@@ -18,7 +18,7 @@
       "lang": "en",
       "fallback": [],
       "complete": true,
-      "strings": 1221,
+      "strings": 1238,
       "files": {
         "ui": "/i18n/en.json",
         "data": "/data/i18n/en.json"
@@ -55,7 +55,7 @@
         "正",
         "載"
       ],
-      "strings": 1216,
+      "strings": 1230,
       "files": {
         "ui": "/i18n/ja.json",
         "data": "/data/i18n/ja.json"
@@ -79,7 +79,7 @@
       ],
       "complete": true,
       "machineTranslated": true,
-      "strings": 1216,
+      "strings": 1230,
       "files": {
         "ui": "/i18n/ko.json",
         "data": "/data/i18n/ko.json"
@@ -114,7 +114,7 @@
         "正",
         "載"
       ],
-      "strings": 1216,
+      "strings": 1230,
       "files": {
         "ui": "/i18n/zh-TW.json",
         "data": "/data/i18n/zh-TW.json"

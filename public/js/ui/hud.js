@@ -371,7 +371,9 @@ export function TopBar({ pub, priv, conn, hud, total, drawer, onExit, onDrawer, 
   const pending = !boss && Number.isFinite(lp) && live && live.pending > 0 ? Math.min(lp, live.pending) : 0;
   // 无尽模式: no hidden round — the round number is always the real one (never '??' past the last defined round)
   const hidden = !pub?.endless && (phase === PHASE.HIDDEN_CORE || (Number.isFinite(pub?.lastRound) && pub.round > pub.lastRound));
-  const roundText = hidden ? '??' : pub?.round > 0 ? String(pub.round) : '--';
+  // 无尽打桩环节: 服务端把 round 改写成 bossRound (仅为相机取景), 顶栏应显示真实**通关回合** (enteredRound), 否则显示成「第 15 回合」
+  const endlessDummy = !!pub?.endless?.dummy;
+  const roundText = hidden ? '??' : endlessDummy && pub.endless.enteredRound > 0 ? String(pub.endless.enteredRound) : pub?.round > 0 ? String(pub.round) : '--';
   // a spectator seat (no m.private, community report #26) never readies
   const showReady = phase === PHASE.PREP && !spectator && priv?.alive !== false;
   // boss rounds: the overtime warning follows the clock (4 Hz while live; frozen while paused)

@@ -100,7 +100,7 @@
 
 import { randomBytes, randomInt } from 'node:crypto';
 import { ERR, DIFFICULTIES, MAX_SEATS, MAX_AI_SEATS, MAX_SPECTATORS, ROOM_PLAYER_OPTIONS, DEFAULT_ROOM_PLAYERS, ROOM_EXTENSIONS, ROOM_EXTENSIONS_DEFAULT, ROOM_CODE_LEN, modeIdFor, ENDLESS, extensionsAreDefault } from '../shared/constants.js';
-import { checkLoadout, checkNotOwned, checkDiyPicks } from '../shared/protocol.js';
+import { checkLoadout, checkNotOwned, checkDiyPicks, sanitizeAvatar } from '../shared/protocol.js';
 import { encode, isDroppable, isErrCode, sendRaw, sendSession } from './net.js';
 import { getData as defaultGetData, lookup } from './data.js';
 import { Match as DefaultMatch } from './match/Match.js';
@@ -188,7 +188,7 @@ const fail = (code, detail) => (detail ? { error: code, detail } : { error: code
 const noopLog = { info() {}, warn() {}, error() {}, debug() {} };
 
 /**
- * @typedef {{ seat: number, playerId: string, name: string, isBot: boolean, ready: boolean,
+ * @typedef {{ seat: number, playerId: string, name: string, avatar?: string|null, isBot: boolean, ready: boolean,
  *             connected: boolean, left: boolean, loadout?: Record<string, { skill: number, module: string|null }> | null,
  *             notOwned?: readonly string[] | null, diy?: Readonly<Record<string, DiyLoadout>> | null,
  *             skins?: Readonly<Record<string, string>> | null }} Seat
@@ -339,9 +339,9 @@ export class Room {
       maxPlayers: this.maxPlayers,
       extensions: { ...this.extensions },
       seats: this.seats.map((s) => (s
-        ? { seat: s.seat, playerId: s.playerId, name: s.name, isBot: s.isBot, ready: s.ready, connected: s.connected && !s.left }
+        ? { seat: s.seat, playerId: s.playerId, name: s.name, ...(s.avatar ? { avatar: s.avatar } : {}), isBot: s.isBot, ready: s.ready, connected: s.connected && !s.left }
         : null)),
-      spectators: this.spectators.map((s) => ({ playerId: s.playerId, name: s.name, connected: s.connected })),
+      spectators: this.spectators.map((s) => ({ playerId: s.playerId, name: s.name, ...(s.avatar ? { avatar: s.avatar } : {}), connected: s.connected })),
     };
   }
 }
@@ -542,10 +542,31 @@ export class Lobby {
     let changed = !seat.connected;
     seat.connected = true;
     if (!room.match && seat.name !== session.name) { seat.name = session.name; changed = true; }
+    // 头像 (this build): a resume / repeated hello may carry a changed avatar (hello.avatar); rebroadcast if so
+    if (!room.match && (seat.avatar || null) !== (session.avatar || null)) { seat.avatar = session.avatar || null; changed = true; }
     if (!room.hostId) { this.migrateHost(room); changed = true; }
     if (changed) this.broadcastState(room);
     else this.sendState(room, session);
     this.resync(session, !resumed);
+  }
+
+  /**
+   * 头像 (this build): `me.avatar { avatar }` — store the chosen operator charId (or null = default) on the session and,
+   * when the player is seated, on the seat, then re-broadcast the room state so teammates see it live. The welcome and
+   * the lobby-chat items carry the same value; an unknown-shaped value is stored as null (never rendered broken).
+   * @param {import('./net.js').Session} session
+   * @param {{ avatar?: unknown }} msg
+   */
+  setAvatar(session, { avatar }) {
+    session.avatar = sanitizeAvatar(avatar);
+    const room = this.roomOf(session);
+    if (room) {
+      const seat = room.seatOf(session.playerId) || room.spectatorOf(session.playerId);
+      if (seat) seat.avatar = session.avatar;
+      // the room screen (seats) reads room.state; during a match the roster is fixed, so skip the broadcast there
+      if (!room.match) this.broadcastState(room);
+    }
+    return OK;
   }
 
   /**
@@ -586,6 +607,8 @@ export class Lobby {
       case 'room.skins': return this.skins(session, msg);
       case 'room.spectate': return this.spectate(session, msg);
       case 'room.removeSpectator': return this.removeSpectator(session, msg);
+      // 头像 (this build): change the lobby avatar live
+      case 'me.avatar': return this.setAvatar(session, msg);
       // 房间大厅 (this build's addition, formerly 多人匹配)
       case 'lobby.list': return this.list(session);
       case 'lobby.quickMatch': return this.quickMatch(session, msg);
@@ -679,13 +702,14 @@ export class Lobby {
     const room = new Room(code, mode, difficulty, this.now());
     room.ownerKey = key;
     room.sandbox = sandbox === true && mode === 'solo';   // 沙盒模式 is solo-only
-    room.endless = endless === true && mode === 'coop';   // 无尽模式 is co-op, fixed 4 players (no AI)
-    if (room.endless) room.maxPlayers = ENDLESS.PLAYERS;
+    room.endless = endless === true && mode === 'coop';   // 无尽模式 is co-op, fixed 4 players (no AI), forced 终极
+    if (room.endless) { room.difficulty = 'ABYSS'; room.maxPlayers = ENDLESS.PLAYERS; }
     room.isPublic = !isPrivate;
     // (开始匹配: a room the matcher opens is flipped into matchmaking by _matchmade right after create, so the host's
     //  auto-ready and the `matching` flag land in the same state.)
-    // 房间人数 (the lobby's picker / the matcher's target): a valid one is the room's capacity from the start
-    if (ROOM_PLAYER_OPTIONS.includes(players)) room.maxPlayers = players;
+    // 房间人数 (the lobby's picker / the matcher's target): a valid one is the room's capacity from the start.
+    // 无尽房固定 4 人 —— 不接受 players 覆盖 (否则 room.create{endless:true, players:8} 能开 8 人)
+    if (!room.endless && ROOM_PLAYER_OPTIONS.includes(players)) room.maxPlayers = players;
     room.seats[0] = this.humanSeat(0, session);
     room.hostId = session.playerId;
     this.rooms.set(code, room);
@@ -858,7 +882,7 @@ export class Lobby {
     if (!this.chatBudgetOk()) return fail(ERR.RATE, 'chat is busy, slow down');
     // the sender's activity at send time (the client cannot know another player's room membership)
     const status = room && !room.disposed ? 'room' : 'lobby';
-    const item = this.chat.push({ playerId: session.playerId, name: session.name, status, kind, text, emote, code });
+    const item = this.chat.push({ playerId: session.playerId, name: session.name, avatar: session.avatar || null, status, kind, text, emote, code });
     if (!item) return fail(ERR.BAD_MSG, 'empty or invalid chat message');
     this.broadcastChat(item);
     return OK;
@@ -1115,7 +1139,7 @@ export class Lobby {
     if (room.mode === 'solo') return fail(ERR.ROOM_FULL, 'solo room');
     if (room.spectators.length >= MAX_SPECTATORS) return fail(ERR.ROOM_FULL, 'no free spectator seat');
     if (cur) this.removeMember(cur, session.playerId);
-    room.spectators.push({ playerId: session.playerId, name: session.name, connected: session.connected });
+    room.spectators.push({ playerId: session.playerId, name: session.name, avatar: session.avatar || null, connected: session.connected });
     session.roomCode = room.code;
     session.notice = null;
     session.pendingResult = null;
@@ -1163,6 +1187,7 @@ export class Lobby {
     if (!room) return fail(ERR.NOT_IN_ROOM);
     if (room.hostId !== session.playerId) return fail(ERR.NOT_HOST);
     if (room.match) return fail(ERR.ROOM_STARTED);
+    if (room.endless) return fail(ERR.WRONG_PHASE, 'endless is 终极');   // 无尽难度锁定 (否则可改低难度刷榜)
     this.dropReplay(room, session.playerId);
     if (room.difficulty !== difficulty) {
       room.difficulty = difficulty;
@@ -1401,7 +1426,7 @@ export class Lobby {
     const host = room.seatOf(room.hostId);
     if (host) host.ready = true;
     const seats = room.seats.filter(Boolean).map((s) => ({
-      seat: s.seat, playerId: s.playerId, name: s.name, isBot: s.isBot, connected: s.connected,
+      seat: s.seat, playerId: s.playerId, name: s.name, ...(s.avatar ? { avatar: s.avatar } : {}), isBot: s.isBot, connected: s.connected,
       // DESIGN §16: the human's checked operator loadout (bots fight with the defaults)
       loadout: s.isBot ? null : s.loadout || null,
       // 0.2.0 补位: the chess the human marked as not owned (bots own every operator)
@@ -1702,7 +1727,7 @@ export class Lobby {
   /** @returns {Seat} */
   humanSeat(idx, session) {
     return {
-      seat: idx, playerId: session.playerId, name: session.name, isBot: false, ready: false, connected: session.connected, left: false,
+      seat: idx, playerId: session.playerId, name: session.name, avatar: session.avatar || null, isBot: false, ready: false, connected: session.connected, left: false,
       loadout: session.loadout || null,
       notOwned: session.notOwned || null,
       diy: session.diy || null,

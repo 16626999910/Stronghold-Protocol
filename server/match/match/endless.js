@@ -1,6 +1,6 @@
 // server/match/match/endless.js — Match methods: 无尽模式 (娱乐玩法, this build, author 2026-10-11). A fixed 4-player
 // co-op 娱乐 match that skips the 14-round flow: normal rounds run forever (no boss round), the team fights on ONE
-// shared LP pool fixed at 1, and when it is spent the run ends in a 打桩环节 (PHASE.DUMMY) whose cumulative team damage
+// shared LP pool fixed at ENDLESS.START_LP (20), and when it is spent the run ends in a 打桩环节 (PHASE.DUMMY) whose cumulative team damage
 // is the score. Numbers are re-scaled (enemies ×ENDLESS.ENEMY_MUL hp+atk, operators ×ENDLESS.UNIT_MUL hp+atk) and grow
 // ×ENDLESS.GROWTH_STEP each round after ENDLESS.GROWTH_FROM; 盟约层数上限 ENDLESS.LAYER_CAP; 每回合资金 +2.
 // Installed on Match.prototype by server/match/Match.js (a method container: never instantiated; `this` is the match).
@@ -10,7 +10,7 @@ import { deriveSeed } from '../../sim/rng.js';
 import { freeSlot } from '../board.js';
 import { FieldRunner } from '../fields.js';
 import { weightedPick } from '../waves.js';
-import { RELICS, GENERAL_DECISIONS, EXCLUSIVE_DECISIONS, aggregateStats, roundLayerGains, relicText, rollRelics, rollDecisions, rollExclusives, relicDefById, decisionDefByKey, exclusiveDefByBond } from './relics.js';
+import { RELICS, GENERAL_DECISIONS, EXCLUSIVE_DECISIONS, aggregateStats, roundLayerGains, relicText, rollRelics, rollDecisions, rollExclusives, relicDefById, decisionDefByKey, exclusiveDefByBond, COMBOS, comboText } from './relics.js';
 import { OK, fail } from './common.js';
 
 /** 经济商店「装备」货位排除的鸡肋道具: 「装备时销毁，获得少量资金」类 (18 块买 1 块, 性价比极低)。 */
@@ -29,7 +29,7 @@ export class MatchEndless {
    */
   enterEndless() {
     if (this.disposed || this.ended) return;
-    // set BEFORE startRound: its shared-LP init only runs while teamLp is null, so the fixed 1 is kept (not the sum)
+    // set BEFORE startRound: its shared-LP init only runs while teamLp is null, so the fixed START_LP is kept (not the sum)
     this.teamLp = ENDLESS.START_LP;
     // 作者 2026-10-12: 删掉开局的「并发 3 选策略」draft —— 无尽不再发策略 (藏品/决策/专属盟约已承担构筑)，
     // 直接进战斗准备 (startRound(1))。开局每人 lp 固定 1 (原来由 draft 结束时设置)。
@@ -248,6 +248,32 @@ export class MatchEndless {
   /** 单个玩家的藏品/决策汇总 (m.private.relicsView): 只列自己的, 不和队友混在一起。 */
   endlessRelicSummaryFor(ps) { return this.endlessRelicSummary([ps]); }
 
+  /** 该玩家已持有的「组合」条目计数 (藏品 id / 决策 key)。 */
+  _comboOwned(ps) {
+    const own = new Map();
+    for (const [id, c] of Object.entries(ps.relics || {})) own.set(id, (own.get(id) || 0) + (Number(c) || 0));
+    for (const key of ps.decisions || []) own.set(key, (own.get(key) || 0) + 1);
+    return own;
+  }
+
+  /** 套装/组合的触发状态 (m.private.relicCombos): [{ key, name, have, need, active, text, ids }]。 */
+  endlessComboView(ps) {
+    const own = this._comboOwned(ps);
+    return COMBOS.map((c) => {
+      const have = c.ids.filter((id) => own.has(id)).length;
+      return { key: c.key, name: c.name, have, need: c.ids.length, active: have >= c.ids.length, text: comboText(c), ids: c.ids.slice() };
+    });
+  }
+
+  /** 一个候选条目的组合提示 (选择卡上显示「组合·X have/need」): null, 或 { key, name, have, need, willComplete }。 */
+  _entryCombo(ps, key) {
+    const c = COMBOS.find((x) => x.ids.includes(key));
+    if (!c) return null;
+    const own = this._comboOwned(ps);
+    const have = c.ids.filter((id) => own.has(id)).length;
+    return { key: c.key, name: c.name, have, need: c.ids.length, willComplete: have + 1 >= c.ids.length };
+  }
+
   /** 全队持有的藏品总数 (维多利亚: 每个藏品当作一件装备; m.public 的 flags.relicAsEquip)。 */
   endlessRelicCount() {
     let n = 0;
@@ -411,7 +437,7 @@ export class MatchEndless {
   }
 
   /**
-   * 每回合开始 (startRound 调): ① 给每个玩家发候选 (R1 专属盟约 8 选 1; r%RELIC_EVERY 藏品 3 选 1; r%DECISION_EVERY 通用决策 3 选 1);
+   * 每回合开始 (startRound 调): ① 给每个玩家发候选 (R1 专属盟约 3 选 1; r%RELIC_EVERY 藏品 3 选 1; r%DECISION_EVERY 通用决策 3 选 1);
    * ② 应用每个玩家藏品/决策的「每回合给层数」到其自己的盟约; ③ 藏品的每回合资金。
    */
   endlessRoundStart(r) {
@@ -425,10 +451,10 @@ export class MatchEndless {
         ps.exclusiveOffer = rollExclusives(this.rngEndless, 3).map((d) => ({ bond: d.bond, name: d.name, rarity: 'color', text: relicText(d) }));
       }
       if (r % ENDLESS.RELIC_EVERY === 0) {
-        ps.relicOffer = rollRelics(this.rngEndless, ps, r).map((d) => ({ id: d.id, name: d.name, rarity: d.rarity, icon: d.icon || null, text: relicText(d) }));
+        ps.relicOffer = rollRelics(this.rngEndless, ps, r).map((d) => ({ id: d.id, name: d.name, rarity: d.rarity, icon: d.icon || null, text: relicText(d), combo: this._entryCombo(ps, d.id) }));
       }
       if (r % ENDLESS.DECISION_EVERY === 0) {
-        ps.decisionOffer = rollDecisions(this.rngEndless, ps).map((d) => ({ key: d.key, name: d.name, rarity: d.rarity, icon: d.icon, text: relicText(d) }));
+        ps.decisionOffer = rollDecisions(this.rngEndless, ps).map((d) => ({ key: d.key, name: d.name, rarity: d.rarity, icon: d.icon, text: relicText(d), combo: this._entryCombo(ps, d.key) }));
       }
       // 每回合给层数 + 资金
       const entries = this._relicEntries(ps);
@@ -485,15 +511,13 @@ export class MatchEndless {
   }
 
   /**
-   * Enter the 打桩环节 (PHASE.DUMMY) — stage 1 (准备): the shared LP (fixed 1) is spent, so instead of a defeat the team
+   * Enter the 打桩环节 (PHASE.DUMMY) — stage 1 (准备): the shared LP (fixed ENDLESS.START_LP) is spent, so instead of a defeat the team
    * gets a last chance: the 双人 boss 地图 (round set to the boss round → the client's boss-prep camera) where players
    * may still (re)arrange their board. When the prep ends (all ready / the deadline) startDummyBattle runs the 30 s
    * dummy fight. Called from settle.js when the shared LP hits 0.
    */
   enterDummy() {
     if (this.disposed || this.ended) return;
-    // TEMP DIAG (bug hunt 2026-10-12): why did the run reach 打桩? Remove once located.
-    console.warn(`[endless] enterDummy R=${this.round} teamLp=${this.teamLp} bossRound=${!!(this.endless && this.endless.bossRound)} phase=${this.phase} enteredRound=${this.endless ? this.endless.enteredRound : '-'}`);
     try { this._stopClientCombat(); } catch (e) { this.reportError('enterDummy stop', e); }
     // 成绩 = 进打桩时的回合数 (the round the team actually reached) — kept before `round` is repointed at the boss round
     // (which is only a client-camera trick), so the result's 通过回合 shows the real round, not bossRound − 1.

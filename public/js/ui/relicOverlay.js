@@ -43,6 +43,8 @@ export function RelicOverlay({ offer, kind, nameOf = () => null, onPick = () => 
           </span>
           <span class="reliccard__name">${o.name}</span>
           ${bondName ? html`<span class="reliccard__bondtag">${bondName}盟约</span>` : null}
+          ${o.combo ? html`<span class=${`reliccard__combo${o.combo.willComplete ? ' is-on' : ''}`} data-testid="card-combo">
+            ${t('组合')}·${o.combo.name} <b>${o.combo.have}/${o.combo.need}</b>${o.combo.willComplete ? ` · ${t('凑齐')}` : ''}</span>` : null}
           <span class="reliccard__text">${o.text}</span>
         </button>`;
       })}
@@ -87,8 +89,9 @@ export function EconShopOverlay({ offer, onBuy = () => {}, onRefresh = () => {},
   </${Modal}>`;
 }
 
-/** 顶部「藏品库」: the team's relics + the team-wide atk/hp bonus they grant. Hidden when empty. Hover shows the effect. */
-export function RelicBar({ relics, stats = null, nameOf = () => null }) {
+/** 顶部「藏品库」: the team's relics + the team-wide atk/hp bonus they grant. Hidden when empty. Hover shows the effect.
+ *  `combos` (m.private.relicCombos, 反馈④) renders a second row: every 套装/组合 with its 已凑齐进度 (have/need). */
+export function RelicBar({ relics, stats = null, combos = null, nameOf = () => null }) {
   if (!Array.isArray(relics) || !relics.length) return null;
   const assets = data.get('assets');
   const pct = (v) => Math.round((Number(v) || 0) * 100);
@@ -108,5 +111,9 @@ export function RelicBar({ relics, stats = null, nameOf = () => null }) {
         </span>`;
       })}
     </div>
+    ${Array.isArray(combos) && combos.length ? html`<div class="relicbar__combos" data-testid="relic-combos">
+      ${combos.map((c) => html`<span class=${`relicbar__combo${c.active ? ' is-on' : ''}`} key=${c.key} title=${`${c.name}：${c.text}`}>
+        ${c.name} <b>${c.have}/${c.need}</b>${c.active ? ` ${t('已凑齐')}` : ''}</span>`)}
+    </div>` : null}
   </div>`;
 }

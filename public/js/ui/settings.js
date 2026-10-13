@@ -8,7 +8,7 @@
 import { useLayoutEffect, useState } from '../../vendor/hooks.module.js';
 import { html, Modal, Button, Icon, MicroLabel } from './components.js';
 import { createStore, useStore, loadPref, savePref } from '../store.js';
-import { sanitizeSettings, HOTKEY_ACTIONS, DEFAULT_HOTKEYS, hotkeyLabel, rebindHotkey, isDefaultHotkeys, captureHotkey, BATTLE_SPEEDS, VOICE_LANGS } from './gameLogic.js';
+import { sanitizeSettings, HOTKEY_ACTIONS, DEFAULT_HOTKEYS, hotkeyLabel, rebindHotkey, isDefaultHotkeys, captureHotkey, BATTLE_SPEEDS, VOICE_LANGS, TEXT_SIZES } from './gameLogic.js';
 import { audio } from '../audio.js';
 import { openGuide } from './guide.js';
 import { detectFeatures } from './device.js';
@@ -17,15 +17,30 @@ import { t, tc, N_ } from '../../../shared/i18n.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
-/** Settings store: { bgm, sfx, voice, muted, damageNumbers, quality, keys }. */
+/** Settings store: { bgm, sfx, voice, muted, damageNumbers, quality, textSize, keys }. */
 export const settingsStore = createStore(sanitizeSettings(loadPref('settings', null)));
+
+/**
+ * 设置 →「文字大小」: put the step on <html data-text> — css/theme.css turns it into the text root `--t`
+ * (`:root[data-text="md"] { --t: … }`), which every readable font-size reads; no layout value does. The attribute
+ * (not an inline style) keeps the default in the stylesheet: without it the page is the design's own sizes. Values
+ * outside TEXT_SIZES fall back to 小.
+ * @param {'sm'|'md'|'lg'|'xl'|string} v
+ */
+export function applyTextSize(v) {
+  const el = globalThis.document?.documentElement;
+  if (el) el.dataset.text = TEXT_SIZES.includes(v) ? v : 'sm';
+}
 
 settingsStore.subscribe((s) => {
   savePref('settings', sanitizeSettings(s));
   audio.setVolumes(s);
   audio.setVoiceLang?.(s.voiceLang);
+  applyTextSize(s.textSize);
 });
 audio.setVolumes(settingsStore.get());
+// before the first render (main.js boot renders after its imports ran): the stored step is on screen without a flash
+applyTextSize(settingsStore.get().textSize);
 
 /** @param {Partial<ReturnType<typeof sanitizeSettings>>} patch */
 export function updateSettings(patch) {
@@ -61,6 +76,9 @@ function Toggle({ label, micro, value, onChange }) {
 }
 
 const QUALITY = [['high', N_('高')], ['medium', N_('中')], ['low', N_('低')]];
+/** 文字大小: one step of TEXT_SIZES (ui/gameLogic/settings.js) with its label — 小 is the design's own sizes, the
+ *  others raise the text root `--t` (css/theme.css) and with it every readable font-size; the board and HUD boxes stay. */
+const TEXT_SCALES = [['sm', N_('小')], ['md', N_('中')], ['lg', N_('大')], ['xl', N_('特大')]];
 /** The rebindable shortcuts' names (msgids), by action. */
 const HOTKEY_NAMES = { refresh: N_('刷新商店'), freeze: N_('冻结 / 解冻商店'), levelUp: N_('升级调度中心'), retreat: N_('撤退选中干员'),
   sell: N_('出售选中干员'), ready: N_('准备就绪 / 暂停（独立模拟）') };
@@ -176,6 +194,13 @@ export function SettingsModal({ open, onClose }) {
         onInput=${(v) => { updateSettings({ sfx: v }); if (!tested) { setTested(true); setTimeout(() => setTested(false), 400); audio.sfx('click'); } }} />
       <${Toggle} label=${t('静音')} micro="MUTE" value=${s.muted} onChange=${(v) => updateSettings({ muted: v })} />
       <${Toggle} label=${t('显示伤害数字')} micro="DAMAGE NUMBERS" value=${s.damageNumbers} onChange=${(v) => updateSettings({ damageNumbers: v })} />
+      <div class="set-row">
+        <span class="set-row__label">${t('文字大小')}<${MicroLabel}>TEXT SIZE<//></span>
+        <div class="set-seg set-textsize" role="radiogroup" aria-label=${t('文字大小')} data-testid="text-size">
+          ${TEXT_SCALES.map(([id, label]) => html`<button key=${id} type="button" role="radio" aria-checked=${s.textSize === id ? 'true' : 'false'}
+            class=${s.textSize === id ? 'is-on' : ''} onClick=${() => updateSettings({ textSize: id })}>${t(label)}</button>`)}
+        </div>
+      </div>
       <div class="set-row">
         <span class="set-row__label">${t('画面质量')}<${MicroLabel}>QUALITY<//></span>
         <div class="set-seg" role="radiogroup">

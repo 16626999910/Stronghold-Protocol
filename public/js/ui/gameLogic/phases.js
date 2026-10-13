@@ -39,7 +39,9 @@ export const isCombatPhase = (phase) => COMBAT_PHASES.has(phase);
  * @param {string|null|undefined} phase
  */
 export const showDeadPill = (alive, phase) => !alive && !COMBAT_PHASES.has(phase) && phase !== PHASE.SETTLE;
-export const isBossPhase = (phase) => phase === PHASE.FINAL_ASSAULT || phase === PHASE.HIDDEN_CORE || phase === PHASE.DUMMY;
+// 打桩环节 (PHASE.DUMMY) 是战斗阶段但**不是**首领战: 场上只有不可击杀的源石虫、没有领袖 —— 若算作 boss, 顶栏会渲染
+// 「敌方领袖」血条、右下角会渲染「对领袖伤害」面板 (社区反馈 2026-10-14 系统排查)。故单独排除。
+export const isBossPhase = (phase) => phase === PHASE.FINAL_ASSAULT || phase === PHASE.HIDDEN_CORE;
 
 /**
  * Banner shown when a phase starts: { title, sub?, tone } or null.

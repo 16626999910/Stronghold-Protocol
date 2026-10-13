@@ -101,8 +101,10 @@ export class MatchSandbox {
     if (!ps || !ps.alive || ps.isBot || ps.left) return fail(ERR.NOT_IN_ROOM);
     try {
       if (kind === 'chess') {
-        const rec = this.gd.chess(id);
-        if (!rec || rec.visible === false) return fail(ERR.BAD_TARGET, 'not a buyable operator');
+        // ps.gd, not this.gd: a slotted 自选 slot composes to that player's operator there (player/diy.js diyGameData);
+        // the match's own record is the bare slot (visible:false, no diyFor) and must not gate a 自选 give
+        const rec = ps.gd.chess(id);
+        if (!rec || (rec.isDiy ? !rec.diyFor : rec.visible === false)) return fail(ERR.BAD_TARGET, 'not a buyable operator');
         ps.acquireChess(id, { source: 'sandbox' });
       } else {
         if (!this.gd.item(id)) return fail(ERR.BAD_TARGET, 'unknown equipment');

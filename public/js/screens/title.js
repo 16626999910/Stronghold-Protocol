@@ -136,7 +136,8 @@ const EMBLEM = [
   'XXXXXXXXXXXXX',
 ];
 
-function Emblem() {
+/** The dot-matrix watchtower emblem — also the lobby hub's centrepiece (screens/lobby.js). */
+export function Emblem() {
   const dots = useMemo(() => {
     const out = [];
     EMBLEM.forEach((row, r) => {

@@ -41,6 +41,7 @@ import { store, useStore, emptyMatch, selectRoute, sessionResetNotice, isSpectat
 import { data } from './data.js';
 import { GAME_FILES } from './ui/gameComponents.js';
 import { TitleScreen, sanitizeName } from './screens/title.js';
+import { playLobbyIntro } from './ui/lobbyIntro.js';
 import { LobbyScreen, rememberRoom, parseRoomParam } from './screens/lobby.js';
 import { RoomScreen } from './screens/room.js';
 import { GameScreen } from './screens/game.js';
@@ -150,13 +151,15 @@ function onWelcome(msg) {
   const prev = store.get();
   const prevId = prev.me.playerId;
   const name = typeof msg.name === 'string' && msg.name ? msg.name : prev.me.name;
+  // 头像 (this build): the server's copy when it has one, else keep the local choice (optimistic / older server)
+  const avatar = typeof msg.avatar === 'string' && msg.avatar ? msg.avatar : prev.me.avatar || null;
   // 每日重启 (this build): the server's daily restart time, for the lobby's notice (null when the feature is off). The
   // value is only the on/off signal — the shown time is a fixed 北京时间 3:25 (screens/lobby.js RestartCountdown).
   const at = msg.restartAt;
   const restartAt = at && Number.isInteger(at.hour) && at.hour >= 0 && at.hour <= 23 && Number.isInteger(at.minute) && at.minute >= 0 && at.minute <= 59
     ? { hour: at.hour, minute: at.minute } : null;
   store.set({
-    me: { playerId: msg.playerId ?? null, name, token: typeof msg.token === 'string' ? msg.token : null },
+    me: { playerId: msg.playerId ?? null, name, token: typeof msg.token === 'string' ? msg.token : null, avatar },
     restartAt,
   });
   welcomeAt = Date.now();
@@ -326,6 +329,7 @@ function App() {
   return html`<div class="app-root">
     <div class="app-bg" aria-hidden="true"></div>
     ${error ? html`<${ScreenCrashed} error=${error} reset=${resetError} />` : html`<${Screen} key=${route} />`}
+    <div class="route-veil" key=${`veil:${route}`} aria-hidden="true"></div>
     <${ConnectionBanner} />
     <${ToastHost} />
     <${UiHosts} />
@@ -453,9 +457,11 @@ async function boot() {
 
   const pendingJoin = parseRoomParam(location.search);
   const savedName = sanitizeName(identity.loadName());
+  // 头像 (this build): the remembered operator avatar (a charId) or null; shown before the first welcome
+  const savedAvatar = /^[A-Za-z0-9_]{1,64}$/.test(identity.loadAvatar()) ? identity.loadAvatar() : null;
   const entered = identity.wasEntered() && !!savedName;
   store.set((s) => ({
-    me: { ...s.me, name: savedName },
+    me: { ...s.me, name: savedName, avatar: savedAvatar },
     session: { entered },
     ui: { ...s.ui, pendingJoin },
   }));
@@ -482,6 +488,7 @@ async function boot() {
   installPreload().catch((err) => console.warn('[preload] install failed', err));
 
   const connectWhenReady = identityReady.then(() => {
+    net.avatar = savedAvatar; // 头像: the first hello carries the remembered avatar (null = default)
     if (entered) net.setName(savedName);
     else net.connect();
   });
@@ -490,6 +497,14 @@ async function boot() {
   await Promise.all([waitForFonts(1200), connectWhenReady, langReady]);
   const root = document.getElementById('app');
   render(html`<${App} />`, root);
+
+  // 开场动画 (reference v024): a CRT power-on / static / fog opening that assembles the watchtower emblem and flies it
+  // into the title screen's emblem. Plays over the page on every load; a restored match never gets it.
+  try {
+    playLobbyIntro({ skip: () => selectRoute(store.get()) === 'game', host: location.host });
+  } catch (err) {
+    console.warn('[intro] failed to start', err);
+  }
 
   const splash = document.getElementById('boot');
   if (splash) {

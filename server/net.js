@@ -39,7 +39,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { isIP } from 'node:net';
-import { C2S, validateC2S } from '../shared/protocol.js';
+import { C2S, validateC2S, sanitizeAvatar } from '../shared/protocol.js';
 import { ERR, ERR_TEXT, NAME_MAX_LEN, PROTOCOL_VERSION } from '../shared/constants.js';
 
 /** Tunables (all overridable through the Network / SessionRegistry constructors). */
@@ -91,6 +91,8 @@ export class Session {
     this.token = token;
     /** @type {string} sanitized nickname */
     this.name = name;
+    /** @type {string | null} 头像 (this build): a chosen 游戏本体头像 id the lobby / room / chat show, or null (default) */
+    this.avatar = null;
     /** @type {import('ws').WebSocket | null} currently bound socket */
     this.ws = null;
     /** @type {boolean} */
@@ -656,13 +658,15 @@ export class Network {
       session.disconnectedAt = null;
     }
     session.name = name;
+    // 头像 (this build): carried in every hello; omitted (older clients) keeps whatever the session already has.
+    if (msg.avatar !== undefined) session.avatar = sanitizeAvatar(msg.avatar);
     session.lastSeen = now;
     session.addr = conn.ip;
     session.limitKey = conn.key;
 
     let extra = null;
     try { extra = this.handler.welcomeInfo?.() ?? null; } catch (e) { this.log.error('[net] welcomeInfo crashed', e); }
-    const welcome = { ...(extra && typeof extra === 'object' ? extra : null), t: 'welcome', playerId: session.playerId, token: session.token, name: session.name, serverNow: now, version: PROTOCOL_VERSION, resumed };
+    const welcome = { ...(extra && typeof extra === 'object' ? extra : null), t: 'welcome', playerId: session.playerId, token: session.token, name: session.name, avatar: session.avatar, serverNow: now, version: PROTOCOL_VERSION, resumed };
     if (validRid(rid)) welcome.rid = rid;
     this.reply(conn, welcome);
     try {

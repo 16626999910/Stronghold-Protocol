@@ -129,7 +129,7 @@ import { PlayerDiy, DiyStock } from './player/diy.js';
 export class PlayerState {
   /**
    * @param {import('./Match.js').Match} m owning match
-   * @param {{ seat: number, playerId: string, name: string, isBot: boolean, connected: boolean, loadout?: any, notOwned?: any, diy?: any }} seat
+   * @param {{ seat: number, playerId: string, name: string, avatar?: string|null, isBot: boolean, connected: boolean, loadout?: any, notOwned?: any, diy?: any }} seat
    */
   constructor(m, seat) {
     this.m = m;
@@ -137,6 +137,8 @@ export class PlayerState {
     this.playerId = seat.playerId;
     this.seat = seat.seat;
     this.name = seat.name;
+    /** 头像 (this build): the seat's chosen 游戏本体头像 id (`avatar_def_01` …), or null (default) — public, shown in the team panel */
+    this.avatar = seat.avatar || null;
     this.isBot = !!seat.isBot;
     this.connected = this.isBot ? true : !!seat.connected;
     this.left = false;

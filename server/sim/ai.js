@@ -364,7 +364,7 @@ export function chainHealNext(b, healer, prev, seen) {
   const r0 = prev.tileR, c0 = prev.tileC;
   let best = null;
   for (const a of b.allyUnits) {
-    if (!a.alive || !a.deployed || a.hidden || a.kind === 'device' || seen.has(a.id)) continue;
+    if (!a.alive || !a.deployed || a.hidden || a.s.flags.untargetable || a.kind === 'device' || seen.has(a.id)) continue;
     if (Math.abs(a.tileR - r0) > 1 || Math.abs(a.tileC - c0) > 1) continue;
     if (a !== healer && (a.s.flags.isolated || (a.s.flags.noHeal && !(through && through(healer, a))) || (a.profile && a.profile.noHeal))) continue;
     if (!best || a.hpRatio < best.hpRatio - 1e-12 || (Math.abs(a.hpRatio - best.hpRatio) <= 1e-12 && a.aggroSeq > best.aggroSeq)) best = a;

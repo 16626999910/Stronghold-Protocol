@@ -365,7 +365,7 @@ function entriesView(gd, pick) {
 export function buildNormalWave(gd, rng, factions, round, cfgRound = round) {
   // 无尽模式: past the last defined round (R>15) `roundCfg(round)` is null — the caller passes `cfgRound` (the highest
   // round with a config) so the composition keeps generating; the real `round` still drives the time limit and (via the
-  // caller's flags) the ×2 stat growth. A normal match passes cfgRound === round (unchanged).
+  // caller's flags) the endless per-round stat growth. A normal match passes cfgRound === round (unchanged).
   let rc = gd.roundCfg(round);
   let compRound = round;
   // fall back when the round has no config OR no NORMAL spawn template (an endless R14 is the boss round: bossTemplates

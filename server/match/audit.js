@@ -7,8 +7,11 @@
 //                 prep in which its player could act on it: the current prep when it arrived in PREP before Ready,
 //                 the next one when it arrived after Ready / at the prep end, else (COMBAT, SETTLE, ROUND_START, 机变)
 //                 the next prep to end; a piece that got into temp by other means counts as due at the prep in
-//                 progress when it is first seen at a prep end. No temp piece may outlive its due prep.
-//   prep end      leftover funds lost (carry bands excepted), temp resolved (only pieces due at a later prep stay),
+//                 progress when it is first seen at a prep end. No temp chess (or token) may outlive its due prep —
+//                 an ITEM is exempt: this build keeps it (PlayerState.resolveTemp pushes its due on), never destroying it
+//                 at the deadline.
+//   prep end      leftover funds lost (carry bands excepted), temp resolved (only pieces due at a later prep — and all
+//                 items — stay),
 //                 reward offers expired
 //   round start   income = config income(r) (= min(3 + r, 12)) + pending funds, upgrade price −1 (floor 0) from R2,
 //                 temp not wiped (nothing overdue), offers earned after the last prep kept, frozen slots kept in
@@ -99,7 +102,7 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
   const overdue = (ps, label) => {
     const d = dueOf(ps);
     for (const p of ps.temp) {
-      if (!p) continue;
+      if (!p || p.kind === 'item') continue; // 道具保留到下一回合 (作者 2026-10): 不在休整期截止时销毁
       const due = d.get(p.uid);
       if (due != null && due < endedOf(ps)) fail(`${ps.playerId}: temp piece ${p.id} (due at prep ${due}) survived ${label} (${endedOf(ps)} preps ended)`);
     }

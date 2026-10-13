@@ -124,7 +124,7 @@ import { backdropTextures, shadowTexture, refreshTierChips, silhouetteTexture } 
 import { TILE_H, TIER_COLORS, COLORS } from './style.js';
 import { loadBoardArt } from './boardArt.js';
 import { ImpostorAtlas } from './impostor.js';
-import { loadThree, loadBoardPack, webgl2Available, boardArtListed } from './board3d/load.js';
+import { loadThree, loadBoardPack, loadScenePack, webgl2Available, boardArtListed } from './board3d/load.js';
 import { BoardScene } from './board3d/scene.js';
 import { unionAreas } from './board3d/layout.js';
 import { layoutPen, penSignature } from './pen.js';
@@ -247,6 +247,13 @@ export async function createFieldView(host, options = {}) {
   let stageRec = null;
   let cam = presetCamera('prep', { width: s0.width, height: s0.height, padding: defaultPadding('prep', s0) }, { hud: hudBands('prep', s0) });
   let camFrom = null, camTo = null, camT0 = 0, camKind = 'prep', camOpts = {}, camMs = CAMERA_MS;
+  // 休整期手动缩放/平移 (community report 2026-10-14: 手机休整期地图太小, 拖人不便): a zoom/pan applied on top of the
+  // camera the presets picked, so the player can pull the board closer without the HUD-driven official framing moving the
+  // bench. `camBase` is the un-nudged camera (set on every camera change); `camView` is the nudge. Reset on any camera
+  // change (prep → battle, the pen, a fold…). view.zoomPrep / view.panPrep / view.resetCamView.
+  let camBase = null;
+  let camView = { z: 1, offX: 0, offY: 0 };
+  const CAM_VIEW = { minZ: 0.7, maxZ: 3.2 };
   let pendingView = null;     // tile band/focus to apply when the camera transition ends
   const views = new Map();    // key → view (prep: 'p:'+uid; battle: unit id)
   let prepPieces = [];        // { uid, piece, area, idx, row, col, key }
@@ -346,6 +353,14 @@ export async function createFieldView(host, options = {}) {
   let board3dError = null;
   // lost-context recovery: the THREE module + art pack of the last 3D board, the pending retry, failures so far
   const recover = { THREE: null, pack: null, timer: 0, tries: 0, since: 0, off: false, count: 0 };
+  /** The stage's official scene, once loaded (the procedural board shows meanwhile and when there is none). */
+  function useOfficialScene(st) {
+    const id = st && typeof st.id === 'string' ? st.id : '';
+    if (!id || !board3d) return;
+    loadScenePack(assets, id).then((scene) => {
+      if (scene && !destroyed && board3d && stageRec && stageRec.id === id) board3d.setScenePack(id, scene);
+    }).catch(() => {});
+  }
   function enable3d(THREE, pack) {
     if (destroyed || board3d || !THREE || !pack) return false;
     recover.THREE = THREE; recover.pack = pack;
@@ -365,7 +380,7 @@ export async function createFieldView(host, options = {}) {
       tiles.setExternal(true);
       backdrop.visible = false;
       b.setArea(boardArea(viewKind(camKind, camOpts)));
-      if (stageRec) b.setStage(stageRec);
+      if (stageRec) { b.setStage(stageRec); useOfficialScene(stageRec); }
       b.setFocus(camRect());
       b.setBattleRect(mode === 'battle' && battleMeta ? battleMeta.rect : null);
       tiles.project(cam, true);
@@ -519,11 +534,14 @@ export async function createFieldView(host, options = {}) {
     if (o.instant || camMs === 0 || mode === 'idle' && !camTo) {
       board3d?.setArea(boardArea(vk));
       cam = target; camFrom = camTo = null;
+      camBase = target; camView = { z: 1, offX: 0, offY: 0 };   // a fresh camera starts un-zoomed
       tiles.setView(band, focus, field);
       setPenHidden(!penShown(vk));
       setLeaderHidden(!leaderShown(vk));
       pendingView = null;
     } else {
+      // a camera flight resets the manual zoom; the settled camera becomes the new base at its end (stepCamera)
+      camView = { z: 1, offX: 0, offY: 0 }; camBase = null;
       camFrom = cam.clone();
       camTo = target;
       camT0 = performance.now();
@@ -537,10 +555,22 @@ export async function createFieldView(host, options = {}) {
     return true;
   }
 
-  /**
-   * Where the prep pieces stand (render/prepfield.js): the own board, or the player's half of the boss field in the
-   * Final Assault prep. A change re-homes the pieces and re-draws the board-space highlight requests.
-   */
+  /** Build the effective `cam` from `camBase` + the manual 休整期 zoom/pan (`camView`); identity → `camBase` itself. */
+  function applyCamView() {
+    if (!camBase) return;
+    const W = Math.max(1, size().width), H = Math.max(1, size().height);
+    const { z, offX, offY } = camView;
+    if (z === 1 && offX === 0 && offY === 0) { cam = camBase; return; }
+    const c = camBase.clone();
+    c.scale = camBase.scale * z;
+    c.cx = W / 2 + z * (camBase.cx - W / 2) + offX;
+    c.cy = H / 2 + z * (camBase.cy - H / 2) + offY;
+    cam = c.update();
+  }
+  /** The manual zoom is 休整期-only (meaningless in battle / on the pen). */
+  const onPrepCamera = () => { const k = viewKind(camKind, camOpts); return k === 'prep' || k === 'bossPrep'; };
+
+
   function setPrepField(xf) {
     const next = xf || IDENTITY;
     if (next.kind === prepXf.kind && next.side === prepXf.side) return;
@@ -564,6 +594,7 @@ export async function createFieldView(host, options = {}) {
     lerpCamera(camFrom, camTo, e, cam);
     if (k >= 1) {
       cam = camTo; camFrom = camTo = null;
+      camBase = cam; camView = { z: 1, offX: 0, offY: 0 };
       if (pendingView) {
         tiles.setView(pendingView.band, pendingView.focus, pendingView.field);
         board3d?.setArea(pendingView.area);
@@ -604,7 +635,7 @@ export async function createFieldView(host, options = {}) {
     stageRec = st;
     tiles.setStage(st);
     tiles.setBattleRect(mode === 'battle' && battleMeta ? battleMeta.rect : null);
-    if (board3d) { board3d.setStage(st); board3d.setBattleRect(mode === 'battle' && battleMeta ? battleMeta.rect : null); }
+    if (board3d) { board3d.setStage(st); board3d.setBattleRect(mode === 'battle' && battleMeta ? battleMeta.rect : null); useOfficialScene(st); }
     tiles.project(cam, true);
     // a pen laid out before the stage arrived (setPrep / a scouting board first) used the default zones and the old
     // tile heights: lay it out again on this stage
@@ -1689,7 +1720,7 @@ export async function createFieldView(host, options = {}) {
     board3d?.resize(sz.width, sz.height, boardDpr());
     layoutBackdrop();
     const target = targetCamera(camKind, camOpts);
-    if (camTo) camTo = target; else cam = target;
+    if (camTo) camTo = target; else { cam = target; camBase = target; applyCamView(); }
     tiles.project(cam, true);
   }
   let ro = null;
@@ -1734,6 +1765,48 @@ export async function createFieldView(host, options = {}) {
   const view = {
     setStage,
     setCamera,
+    /**
+     * 休整期手动缩放 (community report 2026-10-14): multiply the board zoom by `factor` about screen point (ax, ay)
+     * (the pointer / the pinch midpoint; default the viewport centre). Clamped to [0.7, 3.2]. No-op in battle / on the
+     * pen / before a base camera exists.
+     */
+    zoomPrep(factor, ax, ay) {
+      if (destroyed) return false;
+      if (!camBase) { camBase = cam; camView = { z: 1, offX: 0, offY: 0 }; }
+      if (!onPrepCamera()) return false;
+      const W = size().width, H = size().height;
+      const a = Number.isFinite(ax) ? ax : W / 2, b = Number.isFinite(ay) ? ay : H / 2;
+      const f = Number(factor) > 0 ? Number(factor) : 1;
+      const z2 = Math.max(CAM_VIEW.minZ, Math.min(CAM_VIEW.maxZ, camView.z * f));
+      const k = z2 / camView.z;
+      camView = {
+        z: z2,
+        offX: (a - W / 2) - k * (a - W / 2 - camView.offX),
+        offY: (b - H / 2) - k * (b - H / 2 - camView.offY),
+      };
+      applyCamView();
+      return true;
+    },
+    /** Pan the 休整期 board by (dx, dy) screen px (two-finger drag). Clamped to the viewport×1 either way. */
+    panPrep(dx, dy) {
+      if (destroyed) return false;
+      if (!camBase) { camBase = cam; camView = { z: 1, offX: 0, offY: 0 }; }
+      if (!onPrepCamera()) return false;
+      const W = size().width, H = size().height;
+      const ox = camView.offX + (Number(dx) || 0), oy = camView.offY + (Number(dy) || 0);
+      camView = { z: camView.z, offX: Math.max(-W, Math.min(W, ox)), offY: Math.max(-H, Math.min(H, oy)) };
+      applyCamView();
+      return true;
+    },
+    /** Drop the manual 休整期 zoom/pan (identity). */
+    resetCamView() {
+      if (destroyed) return false;
+      camView = { z: 1, offX: 0, offY: 0 };
+      applyCamView();
+      return true;
+    },
+    /** The current manual zoom/pan (dev / tests). */
+    prepZoom() { return { ...camView }; },
     setPrep,
     /** Enemy preview pen: a list in m.private.nextEnemies shape, or null to empty it (setPrep does this itself). */
     setPen(list) { if (destroyed) return false; setPenList(Array.isArray(list) ? list : null); return true; },

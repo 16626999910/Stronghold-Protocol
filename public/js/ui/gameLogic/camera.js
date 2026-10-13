@@ -16,6 +16,9 @@ import { int, isObj } from './shared.js';
  * @returns {{ kind: 'prep'|'bossPrep', opts: { rect?: { r0: number, r1: number, c0: number, c1: number }, side: 'L'|'R' } }}
  */
 export function prepCamera(pub, myId) {
+  // 打桩环节 (无尽): 每名玩家各自在 **L 半场** 打桩 (服务端 _dummyOpts 一律 side:'L'), 故准备相机也一律 L ——
+  // 否则按存活座次两两配对会给奇数座玩家 R 半场, 与开打后的 L 半场镜像不符 (打进桩时准备棋盘翻转)
+  if (pub && pub.endless && pub.endless.dummy) return { kind: 'bossPrep', opts: { side: 'L' } };
   const normal = { kind: 'prep', opts: { rect: { ...GEO.NORMAL_RECT }, side: 'L' } };
   const r = pub?.round;
   if (!Number.isInteger(r) || r <= 0 || !(r === pub.bossRound || r === pub.hiddenRound)) return normal;

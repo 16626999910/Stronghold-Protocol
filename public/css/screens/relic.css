@@ -45,6 +45,9 @@
 .reliccard.reliccard--bond .reliccard__top {
   background:
     radial-gradient(62% 74% at 50% 40%, var(--rcg, rgba(200, 170, 100, .5)), transparent 72%),
+    linear-gradient(180deg, rgba(122, 90, 42, .22), transparent 80%);
+  background:
+    radial-gradient(62% 74% at 50% 40%, var(--rcg, rgba(200, 170, 100, .5)), transparent 72%),
     linear-gradient(180deg, color-mix(in srgb, var(--b2, #7a5a2a) 22%, transparent), transparent 80%);
 }
 .reliccard.reliccard--bond .reliccard__art {
@@ -83,7 +86,7 @@
 .econ__hint.is-bought { color: var(--mint-300, #7fe6b6); }
 .reliccard__bondtag {
   display: block; align-self: center; margin: -.02rem auto .04rem;
-  font-size: .15rem; font-weight: 800; letter-spacing: .12em; padding: .02rem .16rem; border-radius: .08rem;
+  font-size: calc(.15 * var(--t)); font-weight: 800; letter-spacing: .12em; padding: .02rem .16rem; border-radius: .08rem;
   color: #fff; background: linear-gradient(90deg, var(--b1, #cfa86a), var(--b2, #7a5a2a));
   box-shadow: 0 0 .12rem var(--rcg, rgba(200, 170, 100, .5));
 }
@@ -127,11 +130,11 @@
     linear-gradient(135deg, #ff6f91, #ffd166, #7ef0c0, #5aa9ff, #c08bff) border-box;
 }
 .reliccard__art img { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 .03rem .05rem rgba(0, 0, 0, .6)); }
-.reliccard__glyph { font-size: .8rem; color: var(--rc, #9fb0a6); }
+.reliccard__glyph { font-size: calc(.8 * var(--t)); color: var(--rc, #9fb0a6); }
 
 .reliccard__rarity {
   position: absolute; left: 50%; bottom: .1rem; transform: translateX(-50%);
-  font-size: .16rem; font-weight: 800; letter-spacing: .08em; padding: .01rem .12rem; border-radius: .08rem;
+  font-size: calc(.16 * var(--t)); font-weight: 800; letter-spacing: .08em; padding: .01rem .12rem; border-radius: .08rem;
   color: #06110b; background: var(--rc, #9fb0a6);
 }
 .reliccard.is-color .reliccard__rarity {
@@ -148,13 +151,27 @@
   background: rgba(8, 11, 10, .82); border: 1px solid rgba(255, 255, 255, .12); border-radius: .09rem;
   pointer-events: auto;
 }
-.relicbar__title { font-size: .13rem; color: var(--amber-500, #f0b429); font-weight: 700; letter-spacing: .02em; }
-.relicbar__stats { font-size: .11rem; color: var(--mint-300, #7fe6b6); font-weight: 700; cursor: help; padding: 0 .02rem; }
+.relicbar__title { font-size: calc(.13 * var(--t)); color: var(--amber-500, #f0b429); font-weight: 700; letter-spacing: .02em; }
+.relicbar__stats { font-size: calc(.11 * var(--t)); color: var(--mint-300, #7fe6b6); font-weight: 700; cursor: help; padding: 0 .02rem; }
 .relicbar__list { display: flex; gap: .05rem; }
 .relicbar__item { position: relative; width: .3rem; height: .3rem; cursor: help; }
 .relicbar__icon { width: 100%; height: 100%; object-fit: contain; }
-.relicbar__glyph { display: inline-flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: .16rem; color: var(--ink-2, #9fb0a6); }
+.relicbar__glyph { display: inline-flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: calc(.16 * var(--t)); color: var(--ink-2, #9fb0a6); }
 .relicbar__count {
-  position: absolute; right: -.02rem; bottom: -.02rem; font-size: .1rem; font-weight: 800; color: #06110b;
+  position: absolute; right: -.02rem; bottom: -.02rem; font-size: calc(.1 * var(--t)); font-weight: 800; color: #06110b;
   background: var(--amber-500, #f0b429); border-radius: .04rem; padding: 0 .03rem; line-height: 1.1;
 }
+
+/* 反馈④: 藏品库「组合」行 (RelicBar) —— 每套三件套/联动的凑齐进度 (已凑齐高亮) */
+.relicbar__combos { display: flex; flex-wrap: wrap; gap: .06rem; padding-left: .08rem; border-left: 1px solid rgba(255, 255, 255, .12); }
+.relicbar__combo { font-size: calc(.11 * var(--t)); color: var(--ink-2, #9fb0a6); background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .14); border-radius: .06rem; padding: .01rem .08rem; cursor: help; white-space: nowrap; }
+.relicbar__combo b { color: var(--ink-1, #e8f0ea); font-weight: 800; }
+.relicbar__combo.is-on { color: #06110b; background: var(--mint-300, #7fe6b6); border-color: var(--mint-300, #7fe6b6); }
+.relicbar__combo.is-on b { color: #06110b; }
+
+/* 反馈④: 选择卡上的组合进度提示 (即将凑齐时高亮) */
+.reliccard__combo { display: block; align-self: center; margin: .04rem auto 0; font-size: calc(.13 * var(--t)); font-weight: 700;
+  color: var(--amber-500, #f0b429); background: rgba(240, 180, 41, .12); border: 1px solid rgba(240, 180, 41, .4); border-radius: .06rem; padding: .02rem .12rem; }
+.reliccard__combo b { font-weight: 800; }
+.reliccard__combo.is-on { color: #06110b; background: var(--mint-300, #7fe6b6); border-color: var(--mint-300, #7fe6b6); }

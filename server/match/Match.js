@@ -167,7 +167,7 @@
 //   common.js        what the modules share (FLOW_TICKER_PRIORITY, DELAYS, BAND_TURN_SECONDS — re-exported here, OK,
 //                    fail, BOSS_CLOCK_MS)
 
-import { PHASE, modeIdFor, BIG_TEAM_NO_BAN, poolCopyMulFor, ROOM_EXTENSIONS_DEFAULT, BOND_LAYER_CAP, ENDLESS } from '../../shared/constants.js';
+import { PHASE, modeIdFor, poolCopyMulFor, ROOM_EXTENSIONS_DEFAULT, BOND_LAYER_CAP, ENDLESS } from '../../shared/constants.js';
 import { Battle } from '../sim/Battle.js';
 import { DataSource } from '../sim/simdata.js';
 import { createRng, deriveSeed } from '../sim/rng.js';
@@ -196,6 +196,7 @@ import { MatchBoss } from './match/bossRounds.js';
 import { MatchSettle } from './match/settle.js';
 import { MatchSandbox } from './match/sandbox.js';
 import { MatchEndless } from './match/endless.js';
+import { MatchReroll } from './match/reroll.js';
 
 export { FLOW_TICKER_PRIORITY, DELAYS, BAND_TURN_SECONDS } from './match/common.js';
 
@@ -327,17 +328,11 @@ export class Match {
      */
     this.loneHuman = this.order.filter((p) => !p.isBot).length === 1;
 
-    // per-match setup (DESIGN §6.5)
-    const setup = setupMatchWaves(this.gd, this.rngSetup);
-    // 沙盒: the map / boss come from the 控制台, not the random draw (set on g.sandboxSet / at 开战).
-    this.stageId = this.sandbox ? this.sandbox.stageId : setup.stageId;
-    this.stage = this.stageId ? this.gd.stage(this.stageId) : null;
-    this.factions = setup.factions;
-    this.bossId = this.sandbox ? this.sandbox.bossId : setup.bossId;
-    this.hiddenBossId = this.sandbox ? null : setup.hiddenBossId;
-    // 大队伍规则 (this build, shared/constants.js): the roster size decides the ban draw and the pool's copy count —
-    // BIG_TEAM_NO_BAN or more seats disable no bonds; the pool's copies scale with the roster from
-    // POOL_SCALE_BASE_SEATS seats up to POOL_SCALE_MAX_MUL× (see poolCopyMulFor).
+    // per-match setup (DESIGN §6.5): rolled by _rollSetup() below (after teamSize / extensions), and re-rollable via
+    // 重刷本局 (match/reroll.js) while the briefing (INFO_CHECK) is up.
+    // 大队伍规则 (this build, shared/constants.js): the roster size decides the pool's copy count — it scales with the
+    // roster from POOL_SCALE_BASE_SEATS seats up to POOL_SCALE_MAX_MUL× (see poolCopyMulFor). (The old "≥6 seats
+    // disables no bonds" rule is gone; 不禁用 is now the `noBan` 玩法扩展开关, default off.)
     // Seat count (players + AI teammates), the same "队伍人数" the Final Assault pool scales by.
     this.teamSize = this.order.length;
     // 玩法扩展 (room.setOptions, host-only): the per-room optional rules this match honours — currently the teammate
@@ -353,19 +348,16 @@ export class Match {
     this.deployCapOff = !!this.extensions.deployCapOff;
     // 每个干员的装备栏位 (author 2026-10-13): **仅无尽狂潮** 3; 其它模式沿用数据里的 2 (PlayerState.equipCap 读它)
     this.equipPerChess = this.endless ? ENDLESS.EQUIP_PER_CHESS : this.gd.equipPerChess;
-    // 无尽模式 also bans no bonds: the draw is skipped entirely (like the big-team rule) — 作者 2026-10-11「不禁用盟约」
-    this.noBondBan = this.teamSize >= BIG_TEAM_NO_BAN || !!this.endless;
+    // 无尽模式 also bans no bonds: the draw is skipped entirely — 作者 2026-10-11「不禁用盟约」
+    // 不禁用 (2026-10-13): the old ≥6-seat auto-skip is now the `noBan` 玩法扩展开关 (default off) — the host opts in.
+    this.noBondBan = this.extensions.noBan === true || !!this.endless;
     // 无尽狂潮: the fixed-4 roster would give the official ×1; the mode instead wants a fatter deck (ENDLESS.POOL_MUL).
     this.poolCopyMul = this.endless ? ENDLESS.POOL_MUL : poolCopyMulFor(this.teamSize);
-    const bans = drawDisabledBonds(this.gd, this.rngSetup, this.noBondBan ? BIG_TEAM_NO_BAN : this.teamSize);
-    this.disabledBonds = bans.drawn;
-    this.staticInactiveBonds = bans.staticOff;
-    this.bannedChess = bans.banned;
-    this.pool = new SharedPool(this.gd, { banned: bans.banned, copyMul: this.poolCopyMul });
-    // 自选编队 (0.2.0): each human's slotted DIY pieces get their own stock — none for one whose bonds are all off this
-    // match (player/diy.js initDiyStock); no randomness is drawn here
-    const off = new Set([...bans.drawn, ...bans.staticOff]);
-    for (const ps of this.order) ps.initDiyStock(off);
+    // 重刷本局 (match/reroll.js): the opening info (战场/阵营/领袖/禁用) is rolled here — re-rollable during the briefing.
+    this.setupRevision = 0;
+    this.reroll = null;
+    this._rerollSeq = 0;
+    this._rollSetup();
 
     this.phase = PHASE.LOBBY;
     this.round = 0;
@@ -432,7 +424,7 @@ export class Match {
 }
 
 // the method modules, in this order (a name defined twice is an error, never a silent override)
-for (const part of [MatchPlatform, MatchInfra, MatchMessaging, MatchViews, MatchWatch, MatchIntents, MatchPause, MatchPhases, MatchSpDraft, MatchPrep, MatchCombat, MatchClientCombat, MatchReports, MatchUnite, MatchBoss, MatchSettle, MatchSandbox, MatchEndless]) {
+for (const part of [MatchPlatform, MatchInfra, MatchMessaging, MatchViews, MatchWatch, MatchIntents, MatchPause, MatchPhases, MatchSpDraft, MatchPrep, MatchCombat, MatchClientCombat, MatchReports, MatchUnite, MatchBoss, MatchSettle, MatchSandbox, MatchEndless, MatchReroll]) {
   for (const key of Reflect.ownKeys(part.prototype)) {
     if (key === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Match.prototype, key)) throw new Error(`Match.${String(key)} is defined twice`);

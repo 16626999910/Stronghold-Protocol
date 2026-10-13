@@ -98,7 +98,9 @@ export class MatchBoss {
       // bounties with battles left (a multi-round card lasts MULTI_ROUND_BOUNTY_BATTLES) follow their player into the
       // boss field, on the player's half
       g.forEach((ps, j) => {
-        for (const b of bountySpawns(this.gd, this.round, wave, ps.bounties, ps.playerId, { solo: this.isSolo, side: j === 0 ? 'L' : 'R' })) spawns.push(b);
+        // endlessBountiesFor = ps.bounties + 无尽本轮的额外悬赏卡 (与预览 views.nextEnemies / 普通波 combat 一致;
+        // 此前用 ps.bounties → 首领轮「预览有悬赏怪、实际不刷」)
+        for (const b of bountySpawns(this.gd, this.round, wave, this.endlessBountiesFor(ps), ps.playerId, { solo: this.isSolo, side: j === 0 ? 'L' : 'R' })) spawns.push(b);
       });
       const inputs = g.map((ps, j) => {
         const input = ps.battleInput({ side: j === 0 ? 'L' : 'R', colOffset: j === 0 ? 0 : 8 });

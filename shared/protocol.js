@@ -9,12 +9,23 @@ import { diySlotIds, validateDiyPicks } from './diy.js';
 const isInt = (v, lo = -Infinity, hi = Infinity) => Number.isInteger(v) && v >= lo && v <= hi;
 const isStr = (v, max = 64) => typeof v === 'string' && v.length <= max;
 const isBool = (v) => typeof v === 'boolean';
+
+/**
+ * 头像 (this build, 大厅右上角): a player-chosen 游戏本体头像 is its official avatarId (`avatar_def_01` …); the client
+ * resolves it to a URL via assets.js `avatarSrc`. An avatarId-shaped string, else it is not an avatar (null = the default).
+ */
+export const AVATAR_RE = /^[A-Za-z0-9_]{1,64}$/;
+export const isAvatar = (v) => typeof v === 'string' && AVATAR_RE.test(v);
+/** Sanitize a client-sent avatar: the avatarId when it is id-shaped, else null (unknown → the default). */
+export const sanitizeAvatar = (v) => (isAvatar(v) ? v : null);
 const isId = (v) => typeof v === 'string' && v.length > 0 && v.length <= 64 && /^[A-Za-z0-9_\-.:]+$/.test(v);
 const isUid = (v) => isInt(v, 1, 2 ** 31);
 const isNum = (v, lo = -Infinity, hi = Infinity) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
 const isPlain = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
 const optional = (check) => (v) => v === undefined || check(v);
 const nullable = (check) => (v) => v === null || v === undefined || check(v);
+/** Wire shape of an avatar field: null / absent, or a short string (the server sanitizes it to an avatarId or null). */
+const avatarField = (v) => v == null || isStr(v, 64);
 /** A plain object with at most `max` own keys, every key passing `key` and every value passing `val`. */
 const isMap = (v, max, key, val) => {
   if (!isPlain(v)) return false;
@@ -32,7 +43,14 @@ const isList = (v, max, item) => Array.isArray(v) && v.length <= max && v.every(
 // hardcoded limit would reject every result of a big team as BAD_MSG.
 export const RESULT_LIMITS = Object.freeze({ players: MAX_SEATS, leaked: 400, unitsEnd: 64, unitStats: 160, layerGains: 40, mods: 16, unspawned: 400 });
 const BIG = 1e13;
+// 战斗伤害/治疗量级单独放宽 (无尽狂潮: R100 起首领血池 > 1e13, R110 ≈ 8.4e13, 累计可再高几倍): a client reports the
+// shared-pool damage as a CUMULATIVE value, and a field's damageDealt/healingDone are the same magnitude, so the plain
+// BIG would reject the whole b.progress / b.result once it crosses 1e13 → the server never credits it (community report
+// 2026-10-14「110 层以上首领打它不掉血」). Bounded by 2^53 (Number.MAX_SAFE_INTEGER) for exact integer arithmetic; the
+// endless stat growth itself is capped (constants.js ENDLESS.GROWTH_CAP) so every battle value stays under it.
+const DMG_BIG = Number.MAX_SAFE_INTEGER;
 const isStat = (v) => v === undefined || isNum(v, 0, BIG);
+const isDmgStat = (v) => v === undefined || isNum(v, 0, DMG_BIG);
 const isModVal = (v) => v === null || isNum(v, -BIG, BIG) || isStr(v, 64) || isBool(v);
 const isLeak = (l) => isPlain(l) && isId(l.enemyKey)
   && (l.mods === undefined || l.mods === null || isMap(l.mods, RESULT_LIMITS.mods, (k) => isStr(k, 32), isModVal))
@@ -41,11 +59,11 @@ const isLeak = (l) => isPlain(l) && isId(l.enemyKey)
 const isUnitEnd = (u) => isPlain(u) && nullable(isUid)(u.uid) && isNum(u.hpPct, 0, 1) && isNum(u.sp, 0, 1e5) && isBool(u.alive)
   && optional(isBool)(u.skillActive) && nullable(isId)(u.defId);
 const isUnitStat = (u) => isPlain(u) && nullable(isUid)(u.uid) && nullable(isId)(u.defId) && optional((v) => isStr(v, 16))(u.kind)
-  && isStat(u.dmg) && isStat(u.kills) && isStat(u.heal) && isStat(u.taken) && isStat(u.attacks);
+  && isDmgStat(u.dmg) && isStat(u.kills) && isDmgStat(u.heal) && isDmgStat(u.taken) && isStat(u.attacks);
 const isPerPlayer = (p) => isPlain(p) && isInt(p.killed, 0, 1e5) && isInt(p.total, 0, 1e5) && p.killed <= p.total
   && isList(p.leaked, RESULT_LIMITS.leaked, isLeak) && isBool(p.perfect)
   && isMap(p.layerGains, RESULT_LIMITS.layerGains, isId, (v) => isNum(v, 0, 1e4))
-  && isStat(p.coins) && isStat(p.damageDealt) && isStat(p.bossDamage) && isStat(p.healingDone) && isStat(p.deaths)
+  && isStat(p.coins) && isDmgStat(p.damageDealt) && isDmgStat(p.bossDamage) && isDmgStat(p.healingDone) && isStat(p.deaths)
   && isList(p.unitsEnd, RESULT_LIMITS.unitsEnd, isUnitEnd)
   && (p.unitStats === undefined || isList(p.unitStats, RESULT_LIMITS.unitStats, isUnitStat));
 const isUnspawned = (u) => isPlain(u) && isId(u.enemyKey) && nullable(isId)(u.sourcePlayerId) && nullable((v) => isStr(v, 16))(u.tag)
@@ -60,7 +78,7 @@ export function isBattleResult(v) {
     && optional((x) => isInt(x, 0, 1e5))(v.killed) && optional((x) => isInt(x, 0, 1e5))(v.total)
     && isMap(v.perPlayer, RESULT_LIMITS.players, isId, isPerPlayer) && Object.keys(v.perPlayer).length > 0
     && (v.unspawned === undefined || isList(v.unspawned, RESULT_LIMITS.unspawned, isUnspawned))
-    && optional((x) => isInt(x, 0, 1e9))(v.errors) && optional((x) => isNum(x, 0, BIG))(v.bossHpLeft);
+    && optional((x) => isInt(x, 0, 1e9))(v.errors) && optional(isDmgStat)(v.bossHpLeft);
 }
 
 // ---- operator loadout (DESIGN §16): room.loadout { entries } -------------------------------------------------
@@ -333,8 +351,11 @@ const target = (v) => {
 /** @type {Record<string, Record<string, (v:any)=>boolean> & { $optional?: string[] }>} */
 export const C2S = {
   // session & lobby
-  hello: { name: (v) => isStr(v, NAME_MAX_LEN) && v.trim().length > 0, token: (v) => v == null || isStr(v, 64), version: (v) => v == null || isInt(v, 0, 1e6), $optional: ['token', 'version'] },
+  hello: { name: (v) => isStr(v, NAME_MAX_LEN) && v.trim().length > 0, token: (v) => v == null || isStr(v, 64), version: (v) => v == null || isInt(v, 0, 1e6), avatar: avatarField, $optional: ['token', 'version', 'avatar'] },
   ping: { c: (v) => typeof v === 'number' && Number.isFinite(v) },
+  // 头像 (this build): change the lobby avatar live (no re-hello). `avatar` is an avatarId, or null for the default (the
+  // server sanitizes the value: a malformed string is stored as null, never a broken image).
+  'me.avatar': { avatar: avatarField },
   // players (开始匹配 / 房间人数): the room's own capacity up front (ROOM_PLAYER_OPTIONS, default 4) — the lobby's 创建同盟
   // sends it so the room opens at the chosen size; the host may still change it later with room.setOptions.
   'room.create': { mode: (v) => v === 'solo' || v === 'coop', difficulty: (v) => DIFFICULTIES.includes(v), private: (v) => v == null || isBool(v), players: (v) => v == null || ROOM_PLAYER_OPTIONS.includes(v), sandbox: (v) => v == null || isBool(v), endless: (v) => v == null || isBool(v), $optional: ['private', 'players', 'sandbox', 'endless'] },
@@ -421,6 +442,10 @@ export const C2S = {
 
   // match
   'g.infoReady': {},
+  // 重刷本局 (match/reroll.js): host opens the vote / a voter answers / the starter cancels
+  'g.rerollSetup': {},
+  'g.rerollVote': { id: isId, agree: isBool },
+  'g.cancelReroll': { id: isId },
   'g.band': { bandId: isId },
   'g.bandSkip': {},
   // the strategy highlighted in the draft screen (user playtest #4 item 4): a turn that runs out takes it while it is
@@ -491,14 +516,14 @@ export const C2S = {
   // uniteLeft; user playtest #6 item 7 — the leakers' live counter)
   'b.progress': {
     battleId: isId, gt: (v) => isNum(v, 0, 1e5), killed: (v) => isInt(v, 0, 1e5), total: (v) => isInt(v, 0, 1e5),
-    leaks: (v) => isNum(v, 0, 1e6), bossDmg: (v) => isNum(v, 0, BIG),
+    leaks: (v) => isNum(v, 0, 1e6), bossDmg: isDmgStat,
     // 首领重生 / 阶段切换把共享血池回满的累计量（LocalBossPool.healed）：服务端据此 refill 权威血池
-    bossHeal: (v) => isNum(v, 0, BIG),
-    by: (v) => isMap(v, RESULT_LIMITS.players, isId, (x) => isNum(x, 0, BIG)), done: isBool,
+    bossHeal: isDmgStat,
+    by: (v) => isMap(v, RESULT_LIMITS.players, isId, isDmgStat), done: isBool,
     left: (v) => isMap(v, RESULT_LIMITS.players, isId, (x) => isInt(x, 0, 1e5)),
     // 跨越战场的盾卫共享血池：本战场对每条池的累计伤害（boss_12 爱国者；≤ 16 条，每条一个非负数）
-    parts: (v) => isList(v, 16, (x) => isNum(x, 0, BIG)),
-    partsHeal: (v) => isList(v, 16, (x) => isNum(x, 0, BIG)),
+    parts: (v) => isList(v, 16, isDmgStat),
+    partsHeal: (v) => isList(v, 16, isDmgStat),
     $optional: ['leaks', 'bossDmg', 'bossHeal', 'by', 'done', 'left', 'parts', 'partsHeal'],
   },
   'b.result': { battleId: isId, result: isBattleResult },

@@ -40,6 +40,8 @@ export const CLIFF = 0.75;
 export const BEVEL = Object.freeze({ low: [0.035, 0.018], block: [0.04, 0.035] });
 /** Deep-sea basins: floor depth below the ground. */
 export const BASIN = 0.14;
+/** How far below the ground the device slabs' side faces reach on an official scene (its ground sits about z 0). */
+export const RAISED_FOOT = 0.08;
 
 const CONTENT_OF = (g) => g !== '#' && g !== 'X';
 
@@ -323,6 +325,7 @@ export function buildBoard(stage, opts = {}) {
   const at = (r, c) => grid[r]?.[c] || null;
   const topZ = (t) => (t.glyph === 'd' ? -BASIN : t.h);
   const board = new Geom(), decal = new Geom(), pipe = new Geom(), glass = new Geom();
+  const raised = new Geom(), raisedDecal = new Geom();
   const gates = [], terrain = { water: [], mire: [], smog: [], infection: [] };
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
 
@@ -443,12 +446,15 @@ export function buildBoard(stage, opts = {}) {
 
   const devices = opts.devices === false ? [] : stageDevices(stage, grid);
   for (const d of devices) {
-    if (d.kind === 'platform' || d.kind === 'sealedFloor' || d.kind === 'waterPlatform') slabDevice(board, decal, UVT, d, grid);
+    if (d.kind === 'platform' || d.kind === 'sealedFloor' || d.kind === 'waterPlatform') {
+      slabDevice(board, decal, UVT, d, grid);
+      slabDevice(raised, raisedDecal, UVT, d, grid, RAISED_FOOT);
+    }
   }
 
   return {
     grid, gates, devices, terrain, edges,
-    buckets: { board: board.finish(), decal: decal.finish(), pipe: pipe.finish(), glass: glass.finish() },
+    buckets: { board: board.finish(), decal: decal.finish(), pipe: pipe.finish(), glass: glass.finish(), raised: raised.finish(), raisedDecal: raisedDecal.finish() },
     bounds: { x0: minX, x1: maxX, y0: minY, y1: maxY },
     stats: { tiles: grid.flat().filter((t) => t.drawn).length, vertices: board.vertexCount + decal.vertexCount + pipe.vertexCount },
   };
@@ -515,17 +521,18 @@ export function stageDevices(stage, grid) {
 /** Device heights on their tile (platform tops are standing surfaces: tiles.js heightAt adds them). */
 export const DEVICE_H = Object.freeze({ platform: TILE_H.platform, sealedFloor: 0.05, waterPlatform: 0.2 });
 
-function slabDevice(board, decal, UVT, d, grid) {
+/** `foot` lowers the side faces' bottom (the scene-board copy reaches under an official scene's ground). */
+function slabDevice(board, decal, UVT, d, grid, foot = 0) {
   const size = d.kind === 'sealedFloor' ? 0.92 : 0.94;
   const h = DEVICE_H[d.kind] || 0.2;
-  const z0 = grid[d.r][d.c].h, zt = z0 + h;
+  const zt = grid[d.r][d.c].h + h, z0 = grid[d.r][d.c].h - foot;
   const a = size / 2, x0 = d.c - a, x1 = d.c + a, y0 = d.r - a, y1 = d.r + a;
   const topSurf = d.kind === 'sealedFloor' ? null : UVT.plateS;
   if (topSurf) board.quad([[x0, y0, zt], [x1, y0, zt], [x1, y1, zt], [x0, y1, zt]], surfaceUV(topSurf), [0, 0, 1], [1.02, 1.02, 1.02]);
   else decal.quad([[x0, y0, zt], [x1, y0, zt], [x1, y1, zt], [x0, y1, zt]], surfaceUV(UVT.hazardX), [0, 0, 1], [1, 1, 1]);
   const side = UVT.graySide;
   for (const dir of ['S', 'E', 'N', 'W']) {
-    const uv = surfaceUV(side, sideRect(side, size, h));
+    const uv = surfaceUV(side, sideRect(side, size, h + foot));
     board.quad(sideCorners(dir, x0, x1, y0, y1, z0, zt), uv, NRM[dir], [[0.5, 0.53, 0.56], [0.5, 0.53, 0.56], [0.85, 0.88, 0.9], [0.85, 0.88, 0.9]]);
   }
 }

@@ -2,13 +2,13 @@
    The panel is a compact strip that expands into a small card; the dialog reuses .modal (components.css) and only adds
    the two category cards inside it. */
 
-/* ---- the bottom-right widget -------------------------------------------------------------------------------- */
+/* ---- the left widget (owner's request: 放左边) --------------------------------------------------------------- */
 .preload {
-  position: absolute; right: .3rem; bottom: .86rem; z-index: 5;
+  position: absolute; left: .3rem; right: auto; bottom: .86rem; z-index: 5;
   width: 4.3rem; max-width: calc(100vw - .6rem);
   display: flex; flex-direction: column; align-items: stretch;
   background: rgba(8, 11, 10, .92);
-  border: 1px solid var(--line-2); border-right: 3px solid var(--mint-500);
+  border: 1px solid var(--line-2); border-left: 3px solid var(--mint-500);
   box-shadow: 0 .1rem .3rem rgba(0, 0, 0, .5);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
@@ -23,12 +23,12 @@
 .preload__ico { width: .22rem; height: .22rem; color: var(--mint-400); flex: none; }
 .preload.is-running .preload__ico { animation: preload-pulse 1.6s var(--ease-in-out) infinite; }
 @keyframes preload-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .45 } }
-.preload__name { flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: baseline; gap: .06rem; overflow: hidden; white-space: nowrap; font-size: .15rem; font-weight: 700; color: var(--text-hi); }
-.preload__name .micro { flex: none; font-size: .1rem; }
-.preload__pct { flex: none; font-size: .15rem; font-weight: 700; color: var(--mint-400); }
+.preload__name { flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: baseline; gap: .06rem; overflow: hidden; white-space: nowrap; font-size: calc(.15 * var(--t)); font-weight: 700; color: var(--text-hi); }
+.preload__name .micro { flex: none; font-size: calc(.1 * var(--t)); }
+.preload__pct { flex: none; font-size: calc(.15 * var(--t)); font-weight: 700; color: var(--mint-400); }
 .preload__pct.is-live { color: var(--mint-300, var(--mint-400)); }
 .preload__chip {
-  flex: none; padding: 0 .06rem; font-size: .12rem; line-height: 1.5; white-space: nowrap;
+  flex: none; padding: 0 .06rem; font-size: calc(.12 * var(--t)); line-height: 1.5; white-space: nowrap;
   background: rgba(78, 216, 175, .12); color: var(--mint-400); border: 1px solid rgba(78, 216, 175, .3);
 }
 .preload__chip.is-paused { background: rgba(246, 163, 41, .14); color: var(--gold); border-color: rgba(246, 163, 41, .4); }
@@ -38,12 +38,12 @@
 .preload__caret { flex: none; width: .16rem; height: .16rem; color: var(--text-dim); }
 
 .preload__panel { padding: 0 .1rem .08rem; display: flex; flex-direction: column; gap: .06rem; }
-.preload__hint { margin: 0; font-size: .12rem; line-height: 1.5; color: var(--text-lo); }
+.preload__hint { margin: 0; font-size: calc(.12 * var(--t)); line-height: 1.5; color: var(--text-lo); }
 .preload__hint.is-warn { color: var(--orange-hi); }
 /* 长时间不游玩，预载资源会自动删除 (preload/service.js STALE_AFTER_MS) — a quieter second line under the hint */
-.preload__note { margin: .02rem 0 0; font-size: .11rem; line-height: 1.5; color: var(--text-dim); }
+.preload__note { margin: .02rem 0 0; font-size: calc(.11 * var(--t)); line-height: 1.5; color: var(--text-dim); }
 .preload__lines { display: flex; flex-wrap: wrap; gap: .04rem .12rem; }
-.preload__line { display: inline-flex; align-items: baseline; gap: .04rem; font-size: .12rem; color: var(--text-dim); }
+.preload__line { display: inline-flex; align-items: baseline; gap: .04rem; font-size: calc(.12 * var(--t)); color: var(--text-dim); }
 .preload__line i { font-style: normal; }
 .preload__line b { color: var(--text-hi); font-weight: 700; }
 .preload__line--bytes { width: 100%; }
@@ -54,14 +54,14 @@
 .preload__track u { position: absolute; inset: 0 auto 0 0; height: 2px; bottom: 0; background: var(--mint-300, var(--mint-400)); opacity: .8; transition: width 300ms var(--ease-out); }
 .preload__acts { display: flex; flex-wrap: wrap; gap: .06rem; }
 .preload__foot { display: flex; align-items: center; justify-content: space-between; gap: .06rem; }
-.preload__auto { display: inline-flex; align-items: center; gap: .04rem; font-size: .12rem; color: var(--text-dim); cursor: pointer; }
+.preload__auto { display: inline-flex; align-items: center; gap: .04rem; font-size: calc(.12 * var(--t)); color: var(--text-dim); cursor: pointer; }
 .preload__auto input { accent-color: var(--mint-500); }
-.preload__close { background: transparent; border: 0; padding: 0; font: inherit; font-size: .12rem; color: var(--text-dim); cursor: pointer; text-decoration: underline; }
+.preload__close { background: transparent; border: 0; padding: 0; font: inherit; font-size: calc(.12 * var(--t)); color: var(--text-dim); cursor: pointer; text-decoration: underline; }
 .preload__close:hover { color: var(--text-hi); }
 
 /* ---- the manager dialog ------------------------------------------------------------------------------------- */
-.preload-modal__hint { margin: 0 0 .1rem; font-size: .14rem; line-height: 1.6; color: var(--text-lo); }
-.preload-modal__hint--inline { margin: 0; font-size: .12rem; }
+.preload-modal__hint { margin: 0 0 .1rem; font-size: calc(.14 * var(--t)); line-height: 1.6; color: var(--text-lo); }
+.preload-modal__hint--inline { margin: 0; font-size: calc(.12 * var(--t)); }
 .preload-modal__hint--mob { color: var(--text-dim); margin-top: .06rem; }
 .preload-modal__grid { display: grid; grid-template-columns: 1fr 1fr; gap: .12rem; }
 /* phones (portrait, or any narrow window) and short landscape screens: one column, and each category becomes two lines
@@ -92,13 +92,13 @@
 .precard--req { border-left: 3px solid var(--mint-500); }
 .precard--opt { border-left: 3px solid var(--line-2); }
 .precard > header { display: flex; align-items: center; gap: .08rem; margin-bottom: .06rem; }
-.precard h3 { margin: 0; font-size: .17rem; color: var(--text-hi); }
-.precard__tag { font-family: var(--font-num); font-size: .1rem; letter-spacing: .12em; color: var(--text-dim); }
-.precard__toggle { margin-left: auto; display: inline-flex; align-items: center; gap: .04rem; font-size: .13rem; color: var(--text-md); cursor: pointer; }
+.precard h3 { margin: 0; font-size: calc(.17 * var(--t)); color: var(--text-hi); }
+.precard__tag { font-family: var(--font-num); font-size: calc(.1 * var(--t)); letter-spacing: .12em; color: var(--text-dim); }
+.precard__toggle { margin-left: auto; display: inline-flex; align-items: center; gap: .04rem; font-size: calc(.13 * var(--t)); color: var(--text-md); cursor: pointer; }
 .precard__toggle input { accent-color: var(--mint-500); }
-.precard__total { display: flex; justify-content: space-between; gap: .08rem; padding-bottom: .06rem; margin-bottom: .06rem; border-bottom: 1px solid var(--line-2); font-size: .13rem; color: var(--text-md); }
+.precard__total { display: flex; justify-content: space-between; gap: .08rem; padding-bottom: .06rem; margin-bottom: .06rem; border-bottom: 1px solid var(--line-2); font-size: calc(.13 * var(--t)); color: var(--text-md); }
 .precat-list { display: flex; flex-direction: column; gap: .06rem; margin: 0; padding: 0; list-style: none; }
-.precat { display: grid; grid-template-columns: minmax(0, 1fr) auto .8rem auto; align-items: center; gap: .08rem; font-size: .13rem; }
+.precat { display: grid; grid-template-columns: minmax(0, 1fr) auto .8rem auto; align-items: center; gap: .08rem; font-size: calc(.13 * var(--t)); }
 .precat__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-md); }
 .precat__n { color: var(--text-lo); }
 .precat__bar { position: relative; height: .08rem; background: rgba(0, 0, 0, .5); border: 1px solid var(--line-2); overflow: hidden; }
@@ -106,6 +106,6 @@
 .precard--opt .precat__bar i { background: linear-gradient(90deg, #4a4210, var(--gold)); }
 .precat__bytes { min-width: .62rem; text-align: right; color: var(--text-dim); }
 .preload-modal__opts { display: flex; align-items: center; gap: .1rem; flex-wrap: wrap; margin-top: .12rem; }
-.preload-modal__conc { display: inline-flex; align-items: center; gap: .06rem; font-size: .14rem; color: var(--text-md); }
+.preload-modal__conc { display: inline-flex; align-items: center; gap: .06rem; font-size: calc(.14 * var(--t)); color: var(--text-md); }
 .preload-modal__status { display: flex; align-items: center; gap: .12rem; flex-wrap: wrap; margin-top: .1rem; padding-top: .1rem; border-top: 1px solid var(--line-2); }
-.preload-modal__failed { font-size: .12rem; color: var(--gold); }
+.preload-modal__failed { font-size: calc(.12 * var(--t)); color: var(--gold); }

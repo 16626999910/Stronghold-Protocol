@@ -1,0 +1,1085 @@
+{
+  "default": "avatar_def_01",
+  "list": [
+    {
+      "id": "avatar_def_01",
+      "name": "符号",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_01.png"
+    },
+    {
+      "id": "avatar_def_02",
+      "name": "档案室",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_02.png"
+    },
+    {
+      "id": "avatar_def_03",
+      "name": "从此出",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_03.png"
+    },
+    {
+      "id": "avatar_def_04",
+      "name": "注意大黑",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_04.png"
+    },
+    {
+      "id": "avatar_def_05",
+      "name": "补充简历",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_05.png"
+    },
+    {
+      "id": "avatar_def_06",
+      "name": "3min",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_06.png"
+    },
+    {
+      "id": "avatar_def_07",
+      "name": "Good Game",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_07.png"
+    },
+    {
+      "id": "avatar_def_08",
+      "name": "PRTS",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_08.png"
+    },
+    {
+      "id": "avatar_def_09",
+      "name": "希望消逝",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_09.png"
+    },
+    {
+      "id": "avatar_def_10",
+      "name": "请勿模仿",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_10.png"
+    },
+    {
+      "id": "avatar_def_11",
+      "name": "晚餐",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_11.png"
+    },
+    {
+      "id": "avatar_def_12",
+      "name": "禁止加班",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_12.png"
+    },
+    {
+      "id": "avatar_def_13",
+      "name": "球体",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_13.png"
+    },
+    {
+      "id": "avatar_def_14",
+      "name": "沙漠金币",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_14.png"
+    },
+    {
+      "id": "avatar_def_15",
+      "name": "WARNING",
+      "type": "DEFAULT",
+      "url": "/assets/avatar/avatar_def_15.png"
+    },
+    {
+      "id": "avatar_dyn_01",
+      "name": "组织",
+      "type": "DYNAMIC",
+      "url": "/assets/avatar/avatar_dyn_01.png"
+    },
+    {
+      "id": "avatar_dyn_02",
+      "name": "情感",
+      "type": "DYNAMIC",
+      "url": "/assets/avatar/avatar_dyn_02.png"
+    },
+    {
+      "id": "avatar_dyn_03",
+      "name": "褪色追忆",
+      "type": "DYNAMIC",
+      "url": "/assets/avatar/avatar_dyn_03.png"
+    },
+    {
+      "id": "avatar_dyn_04",
+      "name": "兔兔许愿星",
+      "type": "DYNAMIC",
+      "url": "/assets/avatar/avatar_dyn_04.png"
+    },
+    {
+      "id": "avatar_dyn_05",
+      "name": "很调皮的狗",
+      "type": "DYNAMIC",
+      "url": "/assets/avatar/avatar_dyn_05.png"
+    },
+    {
+      "id": "avatar_dyn_06",
+      "name": "很好奇的猫",
+      "type": "DYNAMIC",
+      "url": "/assets/avatar/avatar_dyn_06.png"
+    },
+    {
+      "id": "avatar_dyn_07",
+      "name": "坠入清醒",
+      "type": "DYNAMIC",
+      "url": "/assets/avatar/avatar_dyn_07.png"
+    },
+    {
+      "id": "avatar_dyn_08",
+      "name": "凝视映像",
+      "type": "DYNAMIC",
+      "url": "/assets/avatar/avatar_dyn_08.png"
+    },
+    {
+      "id": "avatar_special_01",
+      "name": "黎明前奏",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_01.png"
+    },
+    {
+      "id": "avatar_special_02",
+      "name": "沙滩急救",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_02.png"
+    },
+    {
+      "id": "avatar_special_03",
+      "name": "滨水守卫",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_03.png"
+    },
+    {
+      "id": "avatar_special_04",
+      "name": "2022余韵切片",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_04.png"
+    },
+    {
+      "id": "avatar_special_05",
+      "name": "导演的认可",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_05.png"
+    },
+    {
+      "id": "avatar_special_06",
+      "name": "徘徊歧路",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_06.png"
+    },
+    {
+      "id": "avatar_special_07",
+      "name": "寻火之叶",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_07.png"
+    },
+    {
+      "id": "avatar_special_08",
+      "name": "2023余韵切片",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_08.png"
+    },
+    {
+      "id": "avatar_special_09",
+      "name": "回眸一笑",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_09.png"
+    },
+    {
+      "id": "avatar_special_10",
+      "name": "记事拾遗",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_10.png"
+    },
+    {
+      "id": "avatar_special_11",
+      "name": "天外宫阙",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_11.png"
+    },
+    {
+      "id": "avatar_special_12",
+      "name": "目的地",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_12.png"
+    },
+    {
+      "id": "avatar_special_13",
+      "name": "白兔子",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_13.png"
+    },
+    {
+      "id": "avatar_special_14",
+      "name": "口袋舰船",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_14.png"
+    },
+    {
+      "id": "avatar_special_15",
+      "name": "防守",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_15.png"
+    },
+    {
+      "id": "avatar_special_16",
+      "name": "进攻",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_16.png"
+    },
+    {
+      "id": "avatar_special_17",
+      "name": "2024余韵切片",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_17.png"
+    },
+    {
+      "id": "avatar_special_18",
+      "name": "祈望星光",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_18.png"
+    },
+    {
+      "id": "avatar_special_19",
+      "name": "很酷，不聊天",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_19.png"
+    },
+    {
+      "id": "avatar_special_20",
+      "name": "蝴蝶结交流会",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_20.png"
+    },
+    {
+      "id": "avatar_special_21",
+      "name": "侦探组合",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_21.png"
+    },
+    {
+      "id": "avatar_special_22",
+      "name": "尤里卡的梦",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_22.png"
+    },
+    {
+      "id": "avatar_special_23",
+      "name": "Wink——",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_23.png"
+    },
+    {
+      "id": "avatar_special_24",
+      "name": "骷髅与少女心",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_24.png"
+    },
+    {
+      "id": "avatar_special_25",
+      "name": "云上的天使",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_25.png"
+    },
+    {
+      "id": "avatar_special_26",
+      "name": "沉默的人与蛋",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_26.png"
+    },
+    {
+      "id": "avatar_special_27",
+      "name": "浇灌磐蟹",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_27.png"
+    },
+    {
+      "id": "avatar_special_28",
+      "name": "惊骇盐风",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_28.png"
+    },
+    {
+      "id": "avatar_special_29",
+      "name": "点墨奇思",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_29.png"
+    },
+    {
+      "id": "avatar_special_30",
+      "name": "快赶走啦！",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_30.png"
+    },
+    {
+      "id": "avatar_special_31",
+      "name": "蓄能",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_31.png"
+    },
+    {
+      "id": "avatar_special_32",
+      "name": "这照片是你吗？",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_32.png"
+    },
+    {
+      "id": "avatar_special_33",
+      "name": "咔！",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_33.png"
+    },
+    {
+      "id": "avatar_special_34",
+      "name": "重岳故事",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_34.png"
+    },
+    {
+      "id": "avatar_special_35",
+      "name": "兔兔小夜曲",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_35.png"
+    },
+    {
+      "id": "avatar_special_36",
+      "name": "兔兔店员",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_36.png"
+    },
+    {
+      "id": "avatar_special_37",
+      "name": "2025余韵切片",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_37.png"
+    },
+    {
+      "id": "avatar_special_38",
+      "name": "特邀嘉宾",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_38.png"
+    },
+    {
+      "id": "avatar_special_39",
+      "name": "共聚",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_39.png"
+    },
+    {
+      "id": "avatar_special_MissC",
+      "name": "女士的准许",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_MissC.png"
+    },
+    {
+      "id": "avatar_special_40",
+      "name": "欢快咔咔",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_40.png"
+    },
+    {
+      "id": "avatar_special_41",
+      "name": "热意咚咚",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_41.png"
+    },
+    {
+      "id": "avatar_special_42",
+      "name": "香浓",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_42.png"
+    },
+    {
+      "id": "avatar_special_44",
+      "name": "罗德岛的祥子",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_44.png"
+    },
+    {
+      "id": "avatar_special_46",
+      "name": "叙拉古的海铃",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_46.png"
+    },
+    {
+      "id": "avatar_special_43",
+      "name": "哥伦比亚的初华",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_43.png"
+    },
+    {
+      "id": "avatar_special_45",
+      "name": "炎国的若麦",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_45.png"
+    },
+    {
+      "id": "avatar_special_47",
+      "name": "雷姆必拓的睦",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_47.png"
+    },
+    {
+      "id": "avatar_special_48",
+      "name": "地平",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_48.png"
+    },
+    {
+      "id": "avatar_special_49",
+      "name": "地平曙光",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_49.png"
+    },
+    {
+      "id": "avatar_special_50",
+      "name": "满足",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_50.png"
+    },
+    {
+      "id": "avatar_special_51",
+      "name": "绵绵淡粉",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_51.png"
+    },
+    {
+      "id": "avatar_special_52",
+      "name": "温暖速递",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_52.png"
+    },
+    {
+      "id": "avatar_special_53",
+      "name": "猎人天职？",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_53.png"
+    },
+    {
+      "id": "avatar_special_54",
+      "name": "出发，冒险队！",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_54.png"
+    },
+    {
+      "id": "avatar_special_55",
+      "name": "无声的友情",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_55.png"
+    },
+    {
+      "id": "avatar_special_56",
+      "name": "精灵的小憩",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_56.png"
+    },
+    {
+      "id": "avatar_special_57",
+      "name": "奇遇之星",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_57.png"
+    },
+    {
+      "id": "avatar_special_58",
+      "name": "福佑之星",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_58.png"
+    },
+    {
+      "id": "avatar_special_60",
+      "name": "悠闲之味",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_60.png"
+    },
+    {
+      "id": "avatar_special_61",
+      "name": "友善轻松小熊玩偶",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_61.png"
+    },
+    {
+      "id": "avatar_special_62",
+      "name": "甜甜小白熊玩偶",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_62.png"
+    },
+    {
+      "id": "avatar_special_63",
+      "name": "勇士轻松小熊玩偶",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_63.png"
+    },
+    {
+      "id": "avatar_special_64",
+      "name": "认真小白熊玩偶",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_64.png"
+    },
+    {
+      "id": "avatar_special_65",
+      "name": "蜜友轻松小熊玩偶",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_65.png"
+    },
+    {
+      "id": "avatar_special_76",
+      "name": "米米子",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_76.png"
+    },
+    {
+      "id": "avatar_special_77",
+      "name": "靓眼银灰",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_77.png"
+    },
+    {
+      "id": "avatar_special_78",
+      "name": "解闷德克萨斯",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_78.png"
+    },
+    {
+      "id": "avatar_special_79",
+      "name": "凯尔希炭",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_79.png"
+    },
+    {
+      "id": "avatar_special_80",
+      "name": "维维美",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_80.png"
+    },
+    {
+      "id": "avatar_special_81",
+      "name": "闲游能天使",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_81.png"
+    },
+    {
+      "id": "avatar_special_82",
+      "name": "2026余韵切片",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_82.png"
+    },
+    {
+      "id": "avatar_special_83",
+      "name": "信念共鸣",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_83.png"
+    },
+    {
+      "id": "avatar_special_74",
+      "name": "相庆",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_74.png"
+    },
+    {
+      "id": "avatar_special_92",
+      "name": "同行",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_92.png"
+    },
+    {
+      "id": "avatar_special_84",
+      "name": "坚忍玛恩纳",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_84.png"
+    },
+    {
+      "id": "avatar_special_85",
+      "name": "灼灼临光",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_85.png"
+    },
+    {
+      "id": "avatar_special_86",
+      "name": "瑕光点点",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_86.png"
+    },
+    {
+      "id": "avatar_special_87",
+      "name": "鞭刃佐菲娅",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_87.png"
+    },
+    {
+      "id": "avatar_special_88",
+      "name": "赤沙娜仁图亚",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_88.png"
+    },
+    {
+      "id": "avatar_special_89",
+      "name": "不言弃的格拉尼",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_89.png"
+    },
+    {
+      "id": "avatar_special_90",
+      "name": "林间流星",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_90.png"
+    },
+    {
+      "id": "avatar_special_91",
+      "name": "空中大爆破",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_91.png"
+    },
+    {
+      "id": "avatar_activity_OF",
+      "name": "火蓝之心",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_OF.png"
+    },
+    {
+      "id": "avatar_activity_GK",
+      "name": "骑兵与猎人",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_GK.png"
+    },
+    {
+      "id": "avatar_activity_OI",
+      "name": "战地秘闻",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_OI.png"
+    },
+    {
+      "id": "avatar_activity_CB",
+      "name": "喧闹法则",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_CB.png"
+    },
+    {
+      "id": "avatar_activity_AF",
+      "name": "洪炉示岁",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_AF.png"
+    },
+    {
+      "id": "avatar_activity_RL1_1",
+      "name": "猩红剧团",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL1_1.png"
+    },
+    {
+      "id": "avatar_activity_RL1_2",
+      "name": "傀影常在",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL1_2.png"
+    },
+    {
+      "id": "avatar_activity_SA",
+      "name": "午间逸话",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_SA.png"
+    },
+    {
+      "id": "avatar_activity_EP10_1",
+      "name": "碎片大厦",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_EP10_1.png"
+    },
+    {
+      "id": "avatar_activity_EP10_2",
+      "name": "日冕",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_EP10_2.png"
+    },
+    {
+      "id": "avatar_activity_SV",
+      "name": "乌萨斯的孩子们",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_SV.png"
+    },
+    {
+      "id": "avatar_activity_BN",
+      "name": "生于黑夜",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_BN.png"
+    },
+    {
+      "id": "avatar_activity_TW",
+      "name": "沃伦姆德的薄暮",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_TW.png"
+    },
+    {
+      "id": "avatar_activity_FA",
+      "name": "踏寻往昔之风",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_FA.png"
+    },
+    {
+      "id": "avatar_activity_RI",
+      "name": "密林悍将归来",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RI.png"
+    },
+    {
+      "id": "avatar_activity_BH",
+      "name": "此地之外",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_BH.png"
+    },
+    {
+      "id": "avatar_activity_EP11",
+      "name": "诸王之息",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_EP11.png"
+    },
+    {
+      "id": "avatar_activity_MN",
+      "name": "玛莉娅临光",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_MN.png"
+    },
+    {
+      "id": "avatar_activity_RL2_1",
+      "name": "深蓝印记",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL2_1.png"
+    },
+    {
+      "id": "avatar_activity_RL2_2",
+      "name": "循环",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL2_2.png"
+    },
+    {
+      "id": "avatar_activity_PL",
+      "name": "灯火序曲",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_PL.png"
+    },
+    {
+      "id": "avatar_activity_MB",
+      "name": "孤岛风云",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_MB.png"
+    },
+    {
+      "id": "avatar_activity_WR",
+      "name": "画中人",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_WR.png"
+    },
+    {
+      "id": "avatar_activity_VI",
+      "name": "如我所见",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_VI.png"
+    },
+    {
+      "id": "avatar_activity_HLL",
+      "name": "苍暮印象",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_HLL.png"
+    },
+    {
+      "id": "avatar_activity_EP12",
+      "name": "影之缚",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_EP12.png"
+    },
+    {
+      "id": "avatar_activity_WD",
+      "name": "遗尘漫步",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_WD.png"
+    },
+    {
+      "id": "avatar_activity_PS",
+      "name": "红松林",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_PS.png"
+    },
+    {
+      "id": "avatar_activity_UT",
+      "name": "覆潮之下",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_UT.png"
+    },
+    {
+      "id": "avatar_activity_RL3_1",
+      "name": "安玛的慈悲",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL3_1.png"
+    },
+    {
+      "id": "avatar_activity_RL3_2",
+      "name": "终古",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL3_2.png"
+    },
+    {
+      "id": "avatar_activity_DH",
+      "name": "多索雷斯假日",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_DH.png"
+    },
+    {
+      "id": "avatar_activity_TB",
+      "name": "阴云火花",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_TB.png"
+    },
+    {
+      "id": "avatar_activity_NL",
+      "name": "长夜临光",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_NL.png"
+    },
+    {
+      "id": "avatar_activity_EP13",
+      "name": "巨骸湍流",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_EP13.png"
+    },
+    {
+      "id": "avatar_activity_BI",
+      "name": "风雪过境",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_BI.png"
+    },
+    {
+      "id": "avatar_activity_TC",
+      "name": "未尽篇章",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_TC.png"
+    },
+    {
+      "id": "avatar_activity_IW",
+      "name": "将进酒",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_IW.png"
+    },
+    {
+      "id": "avatar_activity_AW",
+      "name": "日暮寻路",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_AW.png"
+    },
+    {
+      "id": "avatar_activity_XB1_1",
+      "name": "沙洲晨曦",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_XB1_1.png"
+    },
+    {
+      "id": "avatar_activity_XB1_2",
+      "name": "搬运任务",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_XB1_2.png"
+    },
+    {
+      "id": "avatar_activity_IS",
+      "name": "叙拉古人",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_IS.png"
+    },
+    {
+      "id": "avatar_activity_AC",
+      "name": "船舰",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_AC.png"
+    },
+    {
+      "id": "avatar_activity_WB",
+      "name": "登临意",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_WB.png"
+    },
+    {
+      "id": "avatar_activity_RL4_2",
+      "name": "追寻",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL4_2.png"
+    },
+    {
+      "id": "avatar_activity_FD",
+      "name": "眠于树影之中",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_FD.png"
+    },
+    {
+      "id": "avatar_activity_FC",
+      "name": "照我以火",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_FC.png"
+    },
+    {
+      "id": "avatar_activity_ARC1",
+      "name": "通关",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_ARC1.png"
+    },
+    {
+      "id": "avatar_activity_RL4_3",
+      "name": "王冠",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL4_3.png"
+    },
+    {
+      "id": "avatar_activity_CW",
+      "name": "孤星",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_CW.png"
+    },
+    {
+      "id": "avatar_activity_HE",
+      "name": "空想花庭",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_HE.png"
+    },
+    {
+      "id": "avatar_activity_TG",
+      "name": "去咧嘴谷",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_TG.png"
+    },
+    {
+      "id": "avatar_activity_SL",
+      "name": "火山旅梦",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_SL.png"
+    },
+    {
+      "id": "avatar_activity_ED2",
+      "name": "全对！",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_ED2.png"
+    },
+    {
+      "id": "avatar_activity_mujica",
+      "name": "舞会的邀请",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_mujica.png"
+    },
+    {
+      "id": "avatar_activity_CV",
+      "name": "不义之财",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_CV.png"
+    },
+    {
+      "id": "avatar_activity_MULTI2",
+      "name": "助威团成员",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_MULTI2.png"
+    },
+    {
+      "id": "avatar_activity_ZT",
+      "name": "崔林特尔梅之金",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_ZT.png"
+    },
+    {
+      "id": "avatar_activity_AC_1",
+      "name": "模拟完成！",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_AC_1.png"
+    },
+    {
+      "id": "avatar_activity_KR",
+      "name": "熔炉还魂记",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_KR.png"
+    },
+    {
+      "id": "avatar_activity_RS",
+      "name": "银心湖列车",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RS.png"
+    },
+    {
+      "id": "avatar_activity_HS",
+      "name": "怀黍离",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_HS.png"
+    },
+    {
+      "id": "avatar_activity_RL5_1",
+      "name": "花语",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL5_1.png"
+    },
+    {
+      "id": "avatar_activity_RL5_2",
+      "name": "留莲",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_RL5_2.png"
+    },
+    {
+      "id": "avatar_activity_pcAct",
+      "name": "新起点",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_pcAct.png"
+    },
+    {
+      "id": "avatar_activity_BB",
+      "name": "巴别塔",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_BB.png"
+    },
+    {
+      "id": "avatar_special_75",
+      "name": "猎手烤肉",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_75.png"
+    },
+    {
+      "id": "avatar_activity_BP",
+      "name": "生路",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_BP.png"
+    },
+    {
+      "id": "avatar_activity_SYS",
+      "name": "我们明日见",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_SYS.png"
+    },
+    {
+      "id": "avatar_special_93",
+      "name": "酸橙记忆",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_93.png"
+    },
+    {
+      "id": "avatar_activity_AS",
+      "name": "太阳甩在身后",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_AS.png"
+    },
+    {
+      "id": "avatar_special_94",
+      "name": "弦月",
+      "type": "SPECIAL",
+      "url": "/assets/avatar/avatar_special_94.png"
+    },
+    {
+      "id": "avatar_activity_dp1",
+      "name": "云在看着你",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_dp1.png"
+    },
+    {
+      "id": "avatar_activity_GO",
+      "name": "追迹日落以西",
+      "type": "ACTIVITY",
+      "url": "/assets/avatar/avatar_activity_GO.png"
+    }
+  ]
+}

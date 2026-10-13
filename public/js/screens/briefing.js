@@ -10,6 +10,7 @@ import { html, Button, Icon, MicroLabel } from '../ui/components.js';
 import { useGameData, Img, RichText } from '../ui/gameComponents.js';
 import { StepHeader, ExitModal } from '../ui/matchChrome.js';
 import { MatchInfo, matchInfoModel } from '../ui/matchInfo.js';
+import { SetupReroll } from '../ui/setupReroll.js';
 import { LoadoutButton } from './loadout.js';
 import { actions } from '../ui/gameActions.js';
 import { factionTypes, sortedPlayers, phaseTotalSeconds } from '../ui/gameLogic.js';
@@ -91,6 +92,7 @@ export function BriefingScreen() {
         <${MatchInfo} model=${info} />
       </section>
     </main>
+    <${SetupReroll} pub=${pub} />
     <footer class="brief__foot">
       <${LoadoutButton} from="briefing" size="lg" class="brief-loadout" />
       <div class="brief-ready">

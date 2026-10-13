@@ -19,13 +19,17 @@ export class MatchIntents {
         if (!ps.infoReady) { ps.infoReady = true; this.markPublic(); this.maybeEndInfo(); }
         return OK;
       // 无尽模式 runs the 并发 3 选 strategy draft (draft.endless): g.band appends to the player's set
+      case 'g.rerollSetup': return this.startRerollSetup(ps);
+      case 'g.rerollVote': return this.rerollVote(ps, msg.id, msg.agree === true);
+      case 'g.cancelReroll': return this.cancelRerollSetup(ps, msg.id);
       case 'g.band': return this.pickBand(ps, msg.bandId);
       case 'g.bandSkip': return this.skipBand(ps);
       // the strategy highlighted in the draft screen (what a timed-out turn takes, timeoutBand)
       case 'g.bandFocus': return this.bandFocus(ps, msg.bandId ?? null);
       case 'g.buy': return ps.buy(msg.slot);
-      case 'g.econBuy': return this.endlessBuyEcon(ps, msg.idx); // 经济商店弹窗: 买转职/装备
-      case 'g.econRefresh': return this.endlessEconRefresh(ps); // 经济商店弹窗: 刷新货架 (首次 1, 每次翻倍)
+      // 经济商店 (无尽): 只在休整期、且未就绪时可操作 (与 g.buy 一样走 _gate, 否则战斗/就绪后仍能买卖)
+      case 'g.econBuy': { const g = ps._gate(); return g || this.endlessBuyEcon(ps, msg.idx); }
+      case 'g.econRefresh': { const g = ps._gate(); return g || this.endlessEconRefresh(ps); }
       case 'g.refresh': return ps.refresh();
       case 'g.freeze': return ps.freeze();
       case 'g.levelUp': return ps.levelUp();
@@ -38,9 +42,9 @@ export class MatchIntents {
       // 无尽狂潮 装备拆卸器: strip every item off an operator back to the 装备库 (author 2026-10-12)
       case 'g.unequip': return ps.unequip(msg.targetUid);
       // 无尽狂潮 肉鸽: 藏品/决策/专属盟约 选取 (author 2026-10-12)
-      case 'g.relic': return this.endlessChooseRelic(ps, msg.idx);
-      case 'g.decision': return this.endlessChooseDecision(ps, msg.idx);
-      case 'g.exclusive': return this.endlessChooseExclusive(ps, msg.bondId);
+      case 'g.relic': { const g = ps._gate(); return g || this.endlessChooseRelic(ps, msg.idx); }
+      case 'g.decision': { const g = ps._gate(); return g || this.endlessChooseDecision(ps, msg.idx); }
+      case 'g.exclusive': { const g = ps._gate(); return g || this.endlessChooseExclusive(ps, msg.bondId); }
       case 'g.reward': return ps.pickReward(msg.idx);
       case 'g.choice': return this.pickCard(ps, msg.idx);
       case 'g.ready': return ps.setReady(!!msg.ready);

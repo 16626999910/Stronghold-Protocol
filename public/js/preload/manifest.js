@@ -6,8 +6,8 @@
 // came from; `skillsById` and friends (an id → iconId index) never match, so nothing bogus gets in. New manifest fields
 // are therefore picked up automatically.
 //
-// Categories mirror the reference 预载资源管理 panel: five REQUIRED ones (what a match needs immediately) and three
-// OPTIONAL ones (the bulk: Spine models, maps/boards, 玩法说明 art — downloaded only when 同时预载 is on).
+// Categories mirror the reference 预载资源管理 panel: five REQUIRED ones (what a match needs immediately) and four
+// OPTIONAL ones (the bulk: operator 头像, Spine models, maps/boards, 玩法说明 art — downloaded only when 同时预载 is on).
 //
 // Pure: no I/O, no browser API — unit tested in Node.
 
@@ -18,6 +18,7 @@ export const CATEGORIES = Object.freeze([
   { id: 'bgm', required: true, key: '背景音乐' },
   { id: 'sfx', required: true, key: '音效' },
   { id: 'voice', required: true, key: '角色语音' },
+  { id: 'avatar', required: false, key: '头像' },
   { id: 'spine', required: false, key: 'Spine 模型与特效' },
   { id: 'map', required: false, key: '地图与棋盘' },
   { id: 'guide', required: false, key: '玩法说明与其他资源' },
@@ -45,6 +46,8 @@ export function categoryOf(path) {
   if (top === 'fonts' || top === 'ui' || top === 'prof') return 'ui';
   if (top === 'guide') return 'guide';
   if (top === 'maps' || top === 'boards') return 'map';
+  // 个人头像 (this build): `avatars.<id>` = a 游戏本体玩家头像 (`/assets/avatar/*.png`) — its own OPTIONAL category.
+  if (top === 'avatars') return 'avatar';
   if (top === 'chars' || top === 'enemies' || top === 'tokens') {
     // a spine model block (`spine.front/back`, skins' spine) — everything else on these branches is an image/icon
     return path.includes('spine') ? 'spine' : 'icon';

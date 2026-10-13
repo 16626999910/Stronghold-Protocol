@@ -15,6 +15,8 @@ import { toast, toastError } from './toasts.js';
 import { feedbackAge } from './feedback.js';
 import { net } from '../net.js';
 import { createStore, useStore, shallowEqual, selectRoute } from '../store.js';
+import { data, useData } from '../data.js';
+import { avatarSrc } from '../assets.js';
 import { EMOTE_THEMES, LOBBY_CHAT_MAX_LEN } from '../../../shared/constants.js';
 import { t } from '../../../shared/i18n.js';
 
@@ -84,6 +86,7 @@ export function LobbyChatButton() {
 
 /** One message row: avatar + name · 状态 · time, then the kind-specific body. */
 function LobbyChatRow({ m }) {
+  useData('assets', 'avatars'); // 头像 (this build): resolve the sender's avatar once the manifests load
   const status = m.status === 'room' ? t('房间') : t('大厅');
   const body = m.kind === 'emote' && m.emote
     ? html`<div class="lc-msg__emote"><${EmoteArt} id=${m.emote} /></div>`
@@ -95,7 +98,7 @@ function LobbyChatRow({ m }) {
         </div>`
       : html`<span class="lc-msg__text">${m.text || ''}</span>`;
   return html`<div class="lc-msg">
-    <${AvatarFrame} name=${m.name} size="sm" seat=${0} class="lc-msg__av" />
+    <${AvatarFrame} name=${m.name} size="sm" seat=${0} src=${avatarSrc(data.get('assets'), data.get('avatars'), m.avatar)} class="lc-msg__av" />
     <div class="lc-msg__body">
       <div class="lc-msg__head">
         <b class="lc-msg__name">${m.name || ''}</b>
@@ -141,12 +144,25 @@ export function LobbyChatPanel() {
   const [cooling, setCooling] = useState(false);
   const coolRef = useRef(0);
   const listRef = useRef(null);
+  // Whether the viewer is reading the newest messages. We only auto-scroll when they are, so a new message never yanks
+  // them off the top of a long one they are mid-reading (that was the "长消息看不见部分字" report).
+  const atBottomRef = useRef(true);
+  const onScroll = () => {
+    const el = listRef.current;
+    if (el) atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+  };
 
-  // pin to the newest message whenever one arrives
+  // Pin to the newest message whenever one arrives — but only if the viewer was already at the bottom. Avatars, emotes
+  // and the async webfont settle a frame or two later, so re-pin once more after layout (that was the "最新记录被遮挡").
   useEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+    if (!el || !atBottomRef.current) return undefined;
+    const toBottom = () => { el.scrollTop = el.scrollHeight; };
+    toBottom();
+    const raf = requestAnimationFrame(toBottom);
+    const timer = setTimeout(toBottom, 120);
+    return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
+  }, [messages]);
 
   const canParty = !!(room && room.mode === 'coop' && !room.inMatch);
   const busy = cooling || Date.now() < coolRef.current;
@@ -172,7 +188,7 @@ export function LobbyChatPanel() {
       <span class="lc__title">${t('大厅聊天')}<${MicroLabel}>LOBBY CHAT<//></span>
       <button type="button" class="lc__collapse" aria-label=${t('收起')} title=${t('收起')} onClick=${closeLobbyChat}><${Icon} name="chevronDown" /></button>
     </header>
-    <div class="lc__list" ref=${listRef}>
+    <div class="lc__list" ref=${listRef} onScroll=${onScroll}>
       ${messages.length
         ? messages.map((m) => html`<${LobbyChatRow} key=${m.id} m=${m} />`)
         : html`<p class="lc__empty">${t('暂无聊天消息')}</p>`}

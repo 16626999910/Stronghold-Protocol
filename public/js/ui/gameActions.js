@@ -49,6 +49,10 @@ export async function act(t, fields = {}, opts = {}) {
 
 export const actions = {
   infoReady: () => act('g.infoReady'),
+  // 重刷本局 (match/reroll.js)
+  rerollSetup: () => act('g.rerollSetup', {}, { sfx: 'click' }),
+  rerollVote: (id, agree) => act('g.rerollVote', { id, agree: !!agree }, { sfx: agree ? 'confirm' : 'back' }),
+  cancelReroll: (id) => act('g.cancelReroll', { id }, { sfx: 'back' }),
   band: (bandId) => act('g.band', { bandId }),
   bandSkip: () => act('g.bandSkip'),
   buy: (slot) => act('g.buy', { slot }),
@@ -79,7 +83,8 @@ export const actions = {
   chat: (text) => act('g.chat', { text }, { quiet: true }),
   // 沙盒模式 (this build): the in-match 控制台 — 配置(map/wave/boss/倍率/层数上限)、买全部、开战
   sandboxSet: (cfg) => act('g.sandboxSet', cfg, { quiet: true }),
-  sandboxGive: (kind, id) => act('g.sandboxGive', { kind, id }, { quiet: true }),
+  // 反馈: buy sound on success and a toast on failure — a silent give read as "点了没反应" (community report 2026-10-14)
+  sandboxGive: (kind, id) => act('g.sandboxGive', { kind, id }, { sfx: 'buy' }),
   sandboxStart: () => act('g.sandboxStart', {}, { sfx: 'ready' }),
   sandboxExit: () => act('g.sandboxExit', {}, { quiet: true }),
   sandboxClear: (area) => act('g.sandboxClear', { area }, { quiet: true }),

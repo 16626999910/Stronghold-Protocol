@@ -71,9 +71,9 @@
 }
 .mode-card__icon .icon { width: .44rem; height: .44rem; }
 .mode-card__text { position: relative; display: flex; flex-direction: column; gap: .1rem; }
-.mode-card__name { font-size: .46rem; font-weight: 900; letter-spacing: .08em; line-height: 1.1; }
-.mode-card__desc { font-size: .17rem; color: var(--text-lo); line-height: 1.65; max-width: 3.6rem; }
-.mode-card__points { display: flex; flex-direction: column; gap: .05rem; margin-top: .06rem; font-size: .15rem; color: var(--text-md); }
+.mode-card__name { font-size: calc(.46 * var(--t)); font-weight: 900; letter-spacing: .08em; line-height: 1.1; }
+.mode-card__desc { font-size: calc(.17 * var(--t)); color: var(--text-lo); line-height: 1.65; max-width: 3.6rem; }
+.mode-card__points { display: flex; flex-direction: column; gap: .05rem; margin-top: .06rem; font-size: calc(.15 * var(--t)); color: var(--text-md); }
 .mode-card__points span::before {
   content: '';
   display: inline-block;
@@ -94,7 +94,7 @@
   padding: .04rem .12rem .04rem .08rem;
   background: var(--mint-500);
   color: var(--text-on-mint);
-  font-size: .14rem;
+  font-size: calc(.14 * var(--t));
   font-weight: 700;
   opacity: 0;
   transform: translateY(-.06rem);
@@ -118,13 +118,13 @@
 .join-row { display: flex; gap: .16rem; align-items: stretch; }
 .join-row .field { flex: 1; }
 .join-row .btn { height: .64rem; }
-.join-foot { display: flex; align-items: center; flex-wrap: wrap; gap: .1rem; min-height: .32rem; font-size: .14rem; }
+.join-foot { display: flex; align-items: center; flex-wrap: wrap; gap: .1rem; min-height: .32rem; font-size: calc(.14 * var(--t)); }
 .code-chip {
   padding: .03rem .12rem .03rem .16rem;
   border: 1px solid var(--line-2);
   background: rgba(0, 0, 0, .3);
   color: var(--amber);
-  font-size: .17rem;
+  font-size: calc(.17 * var(--t));
   font-weight: 700;
   letter-spacing: .2em;
   transition: border-color var(--t-fast), background-color var(--t-fast);
@@ -155,20 +155,20 @@
 .diff-card__bar { position: absolute; left: 0; top: 0; bottom: 0; width: .06rem; background: var(--d-color); opacity: .45; transition: opacity var(--t-med), box-shadow var(--t-med); }
 .diff-card__head { grid-column: 1 / -1; display: flex; align-items: center; gap: .1rem; min-width: 0; }
 .diff-card__glyph { width: .28rem; height: .28rem; color: var(--d-color); filter: drop-shadow(0 0 5px var(--d-color)); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--d-color) 55%, transparent)); }
-.diff-card__name { font-size: .27rem; font-weight: 900; letter-spacing: .06em; color: var(--d-color); }
-.diff-card__code { font-size: .14rem; color: var(--text-dim); letter-spacing: .1em; }
-.diff-card__meta { margin-left: auto; display: flex; align-items: center; gap: .04rem; font-size: .14rem; color: var(--text-lo); white-space: nowrap; }
-.diff-card__meta .num { color: var(--text-hi); font-weight: 700; font-size: .17rem; }
+.diff-card__name { font-size: calc(.27 * var(--t)); font-weight: 900; letter-spacing: .06em; color: var(--d-color); }
+.diff-card__code { font-size: calc(.14 * var(--t)); color: var(--text-dim); letter-spacing: .1em; }
+.diff-card__meta { margin-left: auto; display: flex; align-items: center; gap: .04rem; font-size: calc(.14 * var(--t)); color: var(--text-lo); white-space: nowrap; }
+.diff-card__meta .num { color: var(--text-hi); font-weight: 700; font-size: calc(.17 * var(--t)); }
 .diff-card__hidden {
   margin-left: .08rem;
   padding: 0 .07rem;
   border: 1px solid transparent; border: 1px solid color-mix(in srgb, var(--d-color) 45%, transparent);
   color: var(--d-color); color: color-mix(in srgb, var(--d-color) 80%, #fff);
-  font-size: .12rem;
+  font-size: calc(.12 * var(--t));
   line-height: 1.6;
 }
-.diff-card__desc { grid-column: 1; font-size: .16rem; color: var(--text-md); }
-.diff-card__effects { grid-column: 1; display: flex; flex-wrap: wrap; gap: .04rem .2rem; font-size: .14rem; color: var(--text-lo); }
+.diff-card__desc { grid-column: 1; font-size: calc(.16 * var(--t)); color: var(--text-md); }
+.diff-card__effects { grid-column: 1; display: flex; flex-wrap: wrap; gap: .04rem .2rem; font-size: calc(.14 * var(--t)); color: var(--text-lo); }
 .diff-card__effects span::before { content: '·'; margin-right: .05rem; color: var(--d-color); font-weight: 900; }
 /* battlefield pool note (config.json modes[].stages): 战场固定为 战场#01 / 战场随机（共N张） — the last item of the
    effects row (no extra card height: the lobby must not scroll at 1280×720 / 1920×1080) */
@@ -183,7 +183,7 @@
   flex-direction: column;
   align-items: center;
   gap: .03rem;
-  font-size: .12rem;
+  font-size: calc(.12 * var(--t));
   color: var(--text-dim);
 }
 .diff-card__check .icon {
@@ -209,24 +209,24 @@
 
 /* ---- create ------------------------------------------------------------------------------------------ */
 .create-box { margin-top: .3rem; display: flex; flex-direction: column; gap: .12rem; }
-.create-box .btn--xl { height: .92rem; font-size: .32rem; letter-spacing: .3em; }
-.create-box__hint { display: flex; align-items: center; justify-content: center; min-height: .3rem; font-size: .14rem; color: var(--text-lo); }
+.create-box .btn--xl { height: .92rem; font-size: calc(.32 * var(--t)); letter-spacing: .3em; }
+.create-box__hint { display: flex; align-items: center; justify-content: center; min-height: .3rem; font-size: calc(.14 * var(--t)); color: var(--text-lo); }
 
 /* 房间人数 (开始匹配 / 创建同盟): a compact chip row above the buttons — reuses .pcount__chip (room.css) so the lobby
    and the room bar read the same. Hidden in solo (a solo run has no capacity to pick). */
 .create-box__size { display: flex; align-items: center; justify-content: center; gap: .1rem; }
-.create-box__size-label { font-size: .15rem; letter-spacing: .05em; color: var(--text-lo); }
+.create-box__size-label { font-size: calc(.15 * var(--t)); letter-spacing: .05em; color: var(--text-lo); }
 
 /* 创建同盟 / 开始匹配: side by side (co-op) as two equal halves, or one full-width button (solo / 独立模拟). */
 .create-box__actions { display: flex; flex-direction: column; }
 .create-box__actions.is-split { display: grid; grid-template-columns: 1fr 1fr; gap: .1rem; }
 /* two half-width buttons: the big single-button type (see .create-box .btn--xl) is too wide in half a column, so trim it */
-.create-box__actions.is-split .btn--xl { font-size: .22rem; letter-spacing: .16em; padding-left: .06rem; padding-right: .06rem; }
+.create-box__actions.is-split .btn--xl { font-size: calc(.22 * var(--t)); letter-spacing: .16em; padding-left: .06rem; padding-right: .06rem; }
 
 /* 大厅顶部 Q 群号 (author 2026-10-13): 醒目胶囊 */
 .lobby-qgroup {
-  margin-top: .05rem; padding: .04rem .16rem; border-radius: .07rem;
-  font-size: .22rem; font-weight: 700; letter-spacing: .08em;
+  padding: .04rem .16rem; border-radius: .07rem;
+  font-size: calc(.22 * var(--t)); font-weight: 700; letter-spacing: .08em;
   color: var(--gold, #ffce8a); background: rgba(255, 180, 84, .14);
   border: 1px solid rgba(255, 180, 84, .45);
   text-shadow: 0 0 .12rem rgba(255, 180, 84, .5);
@@ -239,7 +239,7 @@
   width: fit-content; max-width: calc(100% - .8rem); margin: -.1rem auto .02rem;
   padding: .08rem .13rem;
   border: 1px solid var(--line-2); border-radius: .3rem; background: rgba(10, 14, 13, .7);
-  font-size: .16rem; line-height: 1.3; color: var(--text-lo);
+  font-size: calc(.16 * var(--t)); line-height: 1.3; color: var(--text-lo);
 }
 .lobby-restart__dot { flex: none; width: .11rem; height: .11rem; border-radius: 50%; background: var(--mint-400); }
 .lobby-restart__text b { color: var(--text); font-weight: 700; }
@@ -249,6 +249,6 @@
 
 /* 开始匹配 waiting stage (lobby.js): a modal with a spinner + 取消匹配 until a room of the chosen 房间人数 turns up. */
 .lobby-mm { display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .12rem .04rem .02rem; text-align: center; }
-.lobby-mm__text { font-size: .19rem; color: var(--text); }
-.lobby-mm__hint { font-size: .14rem; line-height: 1.55; color: var(--text-lo); }
+.lobby-mm__text { font-size: calc(.19 * var(--t)); color: var(--text); }
+.lobby-mm__hint { font-size: calc(.14 * var(--t)); line-height: 1.55; color: var(--text-lo); }
 .lobby-mm .btn { margin-top: .06rem; }

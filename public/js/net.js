@@ -135,6 +135,7 @@ export class Net {
     this.status = 'idle';
     this.ws = null;
     this.name = null;          // desired player name (hello is sent when set)
+    this.avatar = null;        // 头像 (this build): chosen 游戏本体头像 id, or null (default). Rides in `hello`.
     this.helloName = null;     // name we sent in the hello that got the last welcome
     this.serverName = null;    // name as normalised by the server
     this.playerId = null;
@@ -285,6 +286,16 @@ export class Net {
     this._sendHello();
   }
 
+  /**
+   * 头像 (this build): set the player avatar (a 游戏本体头像 id, or null for the default). Kept for the next `hello` and, while
+   * online, sent right away as `me.avatar` (the server stores it on the session and re-broadcasts the room state).
+   * @param {string|null} avatar
+   */
+  setAvatar(avatar) {
+    this.avatar = typeof avatar === 'string' && avatar ? avatar : null;
+    this.send('me.avatar', { avatar: this.avatar });
+  }
+
   _onOpen() {
     this._openedAt = this.now();
     this._lastRx = this._openedAt;
@@ -363,6 +374,7 @@ export class Net {
     if (!this.name) return;
     const rid = this._nextRid();
     const msg = { t: 'hello', rid, name: this.name, version: PROTOCOL_VERSION };
+    if (this.avatar) msg.avatar = this.avatar; // 头像: string only (null means "default" and is simply omitted)
     let token = null;
     try { token = this.getToken(); } catch { token = null; }
     if (typeof token === 'string' && token.length > 0 && token.length <= 64) msg.token = token;
@@ -389,6 +401,8 @@ export class Net {
     // Compare future setName() calls against what we sent (the server may normalise the name).
     this.helloName = this._helloSentName;
     this.serverName = typeof msg.name === 'string' && msg.name ? msg.name : this._helloSentName;
+    // 头像: adopt the server's copy when it has one; a null welcome keeps the local choice (optimistic)
+    if (typeof msg.avatar === 'string' && msg.avatar) this.avatar = msg.avatar;
     this.playerId = msg.playerId ?? null;
     this.attempt = 0;
     this.lastError = null;
@@ -658,6 +672,7 @@ export class Net {
 // its own token (never another tab's), so it can't steal a live session either.
 
 const K_NAME = 'sp.name';
+const K_AVATAR = 'sp.avatar';    // localStorage: 头像 (this build) — the chosen 游戏本体头像 id, absent = default
 const K_TOKEN = 'sp.token';      // sessionStorage: this tab's token
 const K_RECENT = 'sp.tokens';    // localStorage: this browser's recent tokens, most recent first
 const K_ENTERED = 'sp.entered';  // sessionStorage: this tab passed the title screen
@@ -801,6 +816,10 @@ export function createIdentity(deps = {}) {
     loadName: () => (sget(local, K_NAME) || '').slice(0, 64),
     /** @param {string} name */
     saveName: (name) => sset(local, K_NAME, String(name)),
+    /** 头像 (this build): the remembered 游戏本体头像 id, or '' (the default look). */
+    loadAvatar: () => (sget(local, K_AVATAR) || '').slice(0, 64),
+    /** @param {string|null} avatar an avatarId, or null/'' to forget it (the default look). */
+    saveAvatar: (avatar) => (typeof avatar === 'string' && avatar ? sset(local, K_AVATAR, avatar.slice(0, 64)) : sdel(local, K_AVATAR)),
     /** Token for `hello` (null ⇒ new session). Before init() only this tab's own token is used. */
     getToken() {
       if (current) return current;

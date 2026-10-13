@@ -16,24 +16,22 @@
 // (`extra`, after its own): one player's 自选 stock (0.2.0, player/diy.js diyRollEntries) — weighted by its copies like
 // any chess, drawn by that player's shop only.
 
-import { BIG_TEAM_NO_BAN } from '../../shared/constants.js';
-
 /**
  * Per-match disabled bond set D and banned chess (research 01 A2): D = uniform sample of `core` core bonds and `addon`
  * add-on bonds among weight > 0 bonds that are active in the mode. A visible chess is banned iff every one of its
  * bonds is in D ∪ mode.inactiveBondIds.
  *
- * 大队伍规则（本整合包）: with BIG_TEAM_NO_BAN or more seats the draw is skipped entirely — {core:0, addon:0} — since
- * a shared pool spread over 6+ players already thins every bond, and the official ban counts (up to 3 core + 4 add-on)
- * would leave most chess banned and the shop unbuildable. Mode-inactive bonds still ban their chess: `staticOff` is
- * not part of the draw.
+ * 不禁用 (the room extension `noBan`, author 2026-10-13; was the ≥6-seat auto rule): with `noBan` the draw is skipped
+ * entirely — {core:0, addon:0} — so no bond is disabled and no chess is banned. Mode-inactive bonds still ban their
+ * chess: `staticOff` is not part of the draw.
  * @param {import('./gamedata.js').GameData} gd
  * @param {Function} rng seeded rng (createRng)
- * @param {number} [teamSize] seats in the match (players + AI teammates); 0 / omitted = the official draw
+ * @param {number} [teamSize] seats in the match (players + AI teammates); informational only now
+ * @param {boolean} [noBan] skip the ban draw entirely (the `noBan` room extension / 无尽)
  * @returns {{ drawn: string[], staticOff: string[], banned: string[], noBan: boolean }}
  */
-export function drawDisabledBonds(gd, rng, teamSize = 0) {
-  const noBan = Number(teamSize) >= BIG_TEAM_NO_BAN;
+export function drawDisabledBonds(gd, rng, teamSize = 0, noBan = false) {
+  noBan = !!noBan;
   const { core: nCore, addon: nAddon } = noBan ? { core: 0, addon: 0 } : gd.bans(gd.difficulty);
   const staticOff = [...gd.modeInactiveBonds].filter((b) => gd.bond(b)).sort();
   const eligible = gd.bondIds.filter((b) => {

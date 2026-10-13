@@ -1657,6 +1657,9 @@ function kitPatriot(ab, e) {
           for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
             const tr = r + dr, tc = c + dc;
             if (tr < R.r0 || tr > R.r1 || tc < R.c0 || tc > R.c1) return false;
+            // 八邻格也必须地面可走：盾卫就站在这 9 格里，若落在围栏/禁区上，二阶段的单腿 final 路线会因起点不可走而
+            // 退回「直线奔蓝门」的兜底 → 无视地形穿模（社区反馈 2026-10-14「爱国者方阵闪盾穿模进蓝门」）
+            if (!passable(tr, tc)) return false;
             if (isOp(tr, tc)) return false;
           }
           return true;
@@ -1770,7 +1773,7 @@ function kitAmiya(ab, e) {
    * 门能落的格：以本体出生点为心、**周围不超过四格**（|dr|,|dc| ≤ 4，作者：原两格再放大两格），**排除干员所在格**（不能跟干员重叠）；
    * 离本体近的优先。跟出生点走 → 换地图也对，且不会甩到玩家打不到的后排。
    */
-  const spots = (b) => {
+  const spots = (b, allowTaken = false) => {
     const taken = new Set();
     for (const u of b.allies()) if (u.alive) taken.add(u.tileR * 1000 + u.tileC);
     const R = b.rect || {};
@@ -1784,7 +1787,7 @@ function kitAmiya(ab, e) {
       const r = e.tileR + dr, c = e.tileC + dc;
       if (r < R.r0 || r > R.r1 || c < R.c0 || c > R.c1) continue;        // 必须在场地范围内
       if (r < rLo) continue;                                              // 只能在干员能站/能打的部署带内
-      if (taken.has(r * 1000 + c)) continue;                              // 不能叠干员
+      if (!allowTaken && taken.has(r * 1000 + c)) continue;               // 不能叠干员（allowTaken = 补足用的放宽回退）
       if (!g.groundPassable(r, c)) continue;                              // **必须地块可通行**（作者：别生成在不可站立的格）
       out.push([r, c]);
     }
@@ -1954,7 +1957,9 @@ function kitAmiya(ab, e) {
   function summonPhase2Gate(b) {
     if ((P.p2spawned ?? 0) >= AMIYA_GATES) return;
     const live = P.gates.filter((g) => g && g.alive);
-    const free = spots(b).find((tile) => !live.some((g) => g.tileR === tile[0] && g.tileC === tile[1]));
+    const empty = (tile) => !live.some((g) => g.tileR === tile[0] && g.tileC === tile[1]);
+    // same top-up fallback as phase 1: a crowded deploy band must not starve phase 2 of its 5 gates
+    const free = spots(b).find(empty) || spots(b, true).find(empty);
     if (free) { spawnGate(b, free, { invuln: true }); P.p2spawned = (P.p2spawned ?? 0) + 1; }
   }
 
@@ -1985,7 +1990,20 @@ function kitAmiya(ab, e) {
         if (cps.length >= 2) loopRoute(b, e2, cps);   // 永不脱逃的循环巡逻（作者 2026-10-11：此前 t561 会脱逃）
         P.gates = [];
         P.gateSeq = 0;
-        for (const tile of spots(b).slice(0, AMIYA_GATES)) spawnGate(b, tile);
+        // 一阶段固定刷满 5 座（每座扣血池 10% → 5 座恰好 50% 进二阶段）。部署带被干员铺满时「不与干员重叠」的格可能不足 5
+        // → 放宽到与干员同格补足：否则一阶段永远扣不到 50%、血池卡住，场上只剩永久无敌的本体 = 「没其他怪、打不到」
+        // （社区反馈 2026-10-14；无尽 110 层起才可能出现阿米娅）。
+        const tiles = spots(b);
+        if (tiles.length < AMIYA_GATES) {
+          const seen = new Set(tiles.map(([r, c]) => r * 1000 + c));
+          for (const t of spots(b, true)) {
+            if (tiles.length >= AMIYA_GATES) break;
+            if (seen.has(t[0] * 1000 + t[1])) continue;
+            seen.add(t[0] * 1000 + t[1]);
+            tiles.push(t);
+          }
+        }
+        for (const tile of tiles.slice(0, AMIYA_GATES)) spawnGate(b, tile);
       },
       tick(b) {
         // 一阶段**打死不再生成**（作者 2026-10-10）——只把阵亡的门从名单里剔除（供【幽影闪烁】等使用），不补刷。

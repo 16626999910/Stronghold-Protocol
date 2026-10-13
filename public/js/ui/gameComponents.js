@@ -10,13 +10,14 @@ import { t as tr } from '../../../shared/i18n.js';
 import {
   uiUrl, chessAvatarUrl, chessPortraitUrl, itemIconUrl, tokenAvatarUrl, enemyIconUrl, bondIconUrl, bandIconUrl,
 } from './assetUrls.js';
+import { avatarSrc } from '../assets.js';
 import { transferBond } from './gameLogic/bonds.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
 /** Data files the in-match screens use (`backups`: the 补位 stand-ins' bodies — cards, the board model, the detail card;
  *  `skins`: the 换装 catalogue — the battle model a chosen skin swaps in, docs/SKINS.md). */
-export const GAME_FILES = ['config', 'assets', 'chess', 'bonds', 'items', 'bands', 'enemies', 'bosses', 'stages', 'tokens',
+export const GAME_FILES = ['config', 'assets', 'avatars', 'chess', 'bonds', 'items', 'bands', 'enemies', 'bosses', 'stages', 'tokens',
   'choices', 'effects', 'garrisons', 'factions', 'local', 'backups', 'skins'];
 
 /**
@@ -265,7 +266,11 @@ export function RichTip({ text, children, placement = 'top' }) {
  * @param {{ player: any, size?: 'sm'|'md', self?: boolean, class?: string }} props
  */
 export function PlayerAvatar({ player, size = 'md', self = false, class: cls }) {
-  const src = player?.bandId ? bandIconUrl(data.get('assets'), player.bandId) : null;
+  // 头像 (this build): subscribe so the avatar resolves even if the enclosing screen has not loaded the manifests yet
+  // (a spectator-only / observed subtree included) — the chosen 游戏本体头像 (or the default 「符号」) else band icon / glyph.
+  useData('assets', 'avatars');
+  const src = avatarSrc(data.get('assets'), data.get('avatars'), player?.avatar)
+    || (player?.bandId ? bandIconUrl(data.get('assets'), player.bandId) : null);
   const glyph = [...(player?.name || '').trim()][0] || '?';
   const dead = player?.alive === false || player?.status === 'dead';
   const left = player?.status === 'left';

@@ -82,6 +82,33 @@ export function avatarUrl(m, id, opts) {
   return null;
 }
 
+/**
+ * 个人头像 (this build): a player's chosen 游戏本体头像（个人头像一览）— `manifest.avatars[id]` (`avatar_def_01` …),
+ * NOT an operator avatar. Returns the stored URL or null (unknown id → the caller falls back to the default / a glyph).
+ */
+export function playerAvatarUrl(m, id) {
+  const s = str(id);
+  return s ? str(get(get(m, 'avatars'), s)) : null;
+}
+
+/**
+ * 个人头像 (this build): the URL to draw for a player — their chosen 游戏本体头像, else the default (「符号」). The URL
+ * comes from the asset manifest (`manifest.avatars`), falling back to the `data/avatars.json` entry when the generated
+ * manifest has no `avatars` group. `avatarsData` = `data.get('avatars')` ({ default, list:[{ id, name, url }] }).
+ */
+export function avatarSrc(m, avatarsData, id) {
+  const list = avatarsData && Array.isArray(avatarsData.list) ? avatarsData.list : [];
+  const urlOf = (x) => {
+    if (!x) return null;
+    const fromManifest = playerAvatarUrl(m, x);
+    if (fromManifest) return fromManifest;
+    const rec = list.find((r) => r && r.id === x);
+    return rec ? str(rec.url) : null;
+  };
+  // the chosen avatar, else the default 「符号」 — an unknown / dropped id also falls back to the default
+  return urlOf(str(id)) || urlOf(str(get(avatarsData, 'default')));
+}
+
 /** Operator half-body portrait (`_1` base, `_2` E2). */
 export function portraitUrl(m, id, opts) {
   const s = str(id);

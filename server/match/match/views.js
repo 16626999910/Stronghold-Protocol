@@ -65,6 +65,11 @@ export class MatchViews {
       poolCopyMul: this.poolCopyMul,
       bossId: this.bossId,
       hiddenBossId: this.hiddenBossId,
+      // 重刷本局 (match/reroll.js): the open vote + a revision the client re-keys the setup panels by
+      setupRevision: this.setupRevision || 0,
+      rerollVote: this.reroll
+        ? { id: this.reroll.id, voters: this.reroll.voters.slice(), agreed: this.reroll.agreed.slice() }
+        : null,
       // 无尽模式: no boss round — R14 is a normal wave, so the client's boss-prep camera must NOT trigger (the whole run
       // stays on the normal map). Only the 打桩环节 (endless.dummy) deliberately frames the boss map, so it keeps the
       // real bossRound while a dummy prep/battle is live.
@@ -80,8 +85,8 @@ export class MatchViews {
       extensions: { ...this.extensions },
       // 沙盒模式 (this build): the 控制台 config the client mirrors (null in a normal match) — the console UI keys off it
       sandbox: this.sandbox ? { entered: !!this.sandbox.entered, stageId: this.sandbox.stageId, mode: this.sandbox.mode, enemies: this.sandbox.enemies.map((e) => ({ ...e })), bossId: this.sandbox.bossId, hpMul: this.sandbox.hpMul, layerCap: this.sandbox.layerCap } : null,
-      // 无尽模式 (this build): the client keys its HUD off this (null in a normal match) — growth = the enemy ×2 multiplier
-      endless: this.endless ? { growth: this.endless.growth, dummy: this.endless.dummy ? { stage: this.endless.dummy.stage || 'battle', dmg: this.endless.dummy.dmg || 0, at: Number(this.endless.dummy.at) || 0 } : null, relics: ENDLESS.RELIC_ENABLED ? this.endlessRelicSummary() : [], relicStats: ENDLESS.RELIC_ENABLED ? this.endlessTeamStatMul() : null } : null,
+      // 无尽模式 (this build): the client keys its HUD off this (null in a normal match) — growth = the enemy hp/atk growth multiplier
+      endless: this.endless ? { growth: this.endless.growth, enteredRound: Number(this.endless.enteredRound) || 0, dummy: this.endless.dummy ? { stage: this.endless.dummy.stage || 'battle', dmg: this.endless.dummy.dmg || 0, at: Number(this.endless.dummy.at) || 0 } : null, relics: ENDLESS.RELIC_ENABLED ? this.endlessRelicSummary() : [], relicStats: ENDLESS.RELIC_ENABLED ? this.endlessTeamStatMul() : null } : null,
       // DESIGN §14: 'client' = battles are simulated by the browsers (b.start specs), 'server' = legacy streaming
       combatMode: this.clientCombat ? 'client' : 'server',
       // solo pause (g.pause, DESIGN §14): the battle, its field clock and every deadline are frozen while true
@@ -90,6 +95,8 @@ export class MatchViews {
         playerId: ps.playerId,
         seat: ps.seat,
         name: ps.name,
+        // 头像 (this build): the seat's chosen operator charId; omitted when unset (the client draws the band / glyph)
+        ...(ps.avatar ? { avatar: ps.avatar } : {}),
         isBot: ps.isBot,
         connected: ps.isBot || (ps.connected && !ps.left),
         alive: ps.alive,

@@ -410,6 +410,7 @@ export function equipMerges(ctx, uid, itemMergeCount = 2) {
   if (!isObj(piece) || piece.kind !== 'item') return false;
   const rec = ctx.getItem?.(piece.id);
   if (!rec || rec.isGolden || rec.itemType !== 'EQUIP' || !rec.mergeable) return false;
+  if (ctx?.priv?.endless && typeof rec.giveBondId === 'string') return false; // 转职不可合成 (无尽; mirror _itemMergeable)
   const n = Number.isInteger(rec.upgradeNum) ? rec.upgradeNum : itemMergeCount;
   if (!(n > 1 && n < 100) || !ctx.getItem(rec.upgradeChessId || rec.goldenId)) return false;
   let have = 0;

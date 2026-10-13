@@ -373,6 +373,48 @@ function MatchScreen() {
   // (last round's battle): combat only enters an m.field pushed after that (a new object), and every new m.field
   // push (watch switch, reconnect) re-enters the battle view.
   const showPrep = (mode === 'prep' || mode === 'boot') && !watchingOther;
+  const showPrepRef = useRef(showPrep); showPrepRef.current = showPrep;
+  const prepDragRef = useRef(false); prepDragRef.current = !!drag;
+
+  // 休整期手动缩放/平移 (community report 2026-10-14: 手机休整期地图太小, 拖人不便): wheel (desktop) + two-finger
+  // pinch/pan (touch) on the field. Only while the own prep board is shown and nothing is being dragged; view.zoomPrep/
+  // panPrep ignore battle / the pen themselves. A camera change (prep → battle, the pen, a fold) drops the zoom.
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host || !view) return undefined;
+    const active = () => showPrepRef.current && !prepDragRef.current && viewModeRef.current === 'prep';
+    const onWheel = (e) => {
+      if (!active()) return;
+      const r = host.getBoundingClientRect();
+      if (view.zoomPrep(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top)) e.preventDefault();
+    };
+    let pinch = null;
+    const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const mid = (t) => [(t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2];
+    const onTouchStart = (e) => { pinch = e.touches.length === 2 && active() ? { d: dist(e.touches), m: mid(e.touches) } : null; };
+    const onTouchMove = (e) => {
+      if (!pinch || e.touches.length !== 2 || !active()) return;
+      const r = host.getBoundingClientRect();
+      const d = dist(e.touches), m = mid(e.touches);
+      view.zoomPrep(d / Math.max(1, pinch.d), m[0] - r.left, m[1] - r.top);
+      view.panPrep(m[0] - pinch.m[0], m[1] - pinch.m[1]);
+      pinch = { d, m };
+      e.preventDefault();
+    };
+    const onTouchEnd = (e) => { if (!e.touches || e.touches.length < 2) pinch = null; };
+    host.addEventListener('wheel', onWheel, { passive: false });
+    host.addEventListener('touchstart', onTouchStart, { passive: true });
+    host.addEventListener('touchmove', onTouchMove, { passive: false });
+    host.addEventListener('touchend', onTouchEnd, { passive: true });
+    host.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    return () => {
+      host.removeEventListener('wheel', onWheel);
+      host.removeEventListener('touchstart', onTouchStart);
+      host.removeEventListener('touchmove', onTouchMove);
+      host.removeEventListener('touchend', onTouchEnd);
+      host.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [view]);
 
   // own board (prep, or a battle field the player fights on) → the stage with the player's overrides; a teammate's
   // board → the plain stage (their overrides are not known here)
@@ -1395,7 +1437,7 @@ function MatchScreen() {
         </div>
       </div>
 
-      ${sandbox ? null : html`<${TeamPanel} pub=${pub} myId=${myId} watching=${watchingNow} bubbles=${bubbles} chats=${chatBubbles} onWatch=${watchPlayer} cap=${gd.config?.lpCapPerRound ?? 10} uniteLocal=${uniteLocal}
+      ${sandbox || pub.endless ? null : html`<${TeamPanel} pub=${pub} myId=${myId} watching=${watchingNow} bubbles=${bubbles} chats=${chatBubbles} onWatch=${watchPlayer} cap=${gd.config?.lpCapPerRound ?? 10} uniteLocal=${uniteLocal}
         self=${Number.isFinite(priv?.lp) ? { lp: priv.lp, pending: liveLpNow.pending, unite: liveLpNow.unite, left: liveLpNow.left } : null}
         observe=${cc ? { canObserve: (p) => observeTarget(p, pub, myId, { observing: watchingOther, ownDone: localDone }), observing: watchingOther, onBack: backHome } : null} />`}
 
@@ -1432,7 +1474,7 @@ function MatchScreen() {
       ${!sandbox && phase === PHASE.PREP && priv?.shop?.rewardOffer ? html`<${RewardOverlay} priv=${priv} minimized=${rewardMin || collapsed}
         onMinimize=${(m) => { setRewardMin(m); if (!m) setCollapsed(false); }} />` : null}
 
-      ${!sandbox && !watchingOther ? html`<${RelicBar} relics=${priv?.relicsView || pub?.endless?.relics} stats=${pub?.endless?.relicStats} nameOf=${(id) => gd.item(id)} />` : null}
+      ${!sandbox && !watchingOther ? html`<${RelicBar} relics=${priv?.relicsView || pub?.endless?.relics} stats=${pub?.endless?.relicStats} combos=${priv?.relicCombos || null} nameOf=${(id) => gd.item(id)} />` : null}
       ${!sandbox && !watchingOther && editable && (priv?.exclusiveOffer || priv?.relicOffer || priv?.decisionOffer) ? html`<${RelicOverlay}
         offer=${priv.exclusiveOffer || priv.relicOffer || priv.decisionOffer}
         kind=${priv.exclusiveOffer ? 'exclusive' : priv.relicOffer ? 'relic' : 'decision'}
@@ -1450,7 +1492,12 @@ function MatchScreen() {
         <span class="gm__dummy__title">${t('打桩环节')}</span>
         ${pub.endless.dummy.stage === 'prep'
           ? html`<span class="gm__dummy__hint">${t('在 boss 地图上摆好阵容，准备就绪后开打 30 秒')}</span>`
-          : html`<span class="gm__dummy__dmg">${t('累计伤害')} <b class="num">${Math.round(pub.endless.dummy.dmg || 0).toLocaleString('en-US')}</b></span>
+          : html`<span class="gm__dummy__dmg">${t('累计伤害')} <b class="num">${(() => {
+              // 打桩伤害的权威值由服务端在结束后重模拟得出 (pub.endless.dummy.dmg 整场为 0); 进行中先用**本地**在场战斗
+              // 各干员的实时伤害求和, 让累计数字随打桩增长 (社区反馈 2026-10-14 系统排查)
+              try { const d = battleRunner?.damageOf?.(field?.fieldId ?? null); if (d) { let s = 0; for (const v of Object.values(d.damage)) s += v; if (s > 0) return Math.round(s).toLocaleString('en-US'); } } catch { /* fall back */ }
+              return Math.round(pub.endless.dummy.dmg || 0).toLocaleString('en-US');
+            })()}</b></span>
             <span class="gm__dummy__time"><b class="num">${pub.endless.dummy.at ? Math.max(0, Math.ceil((pub.endless.dummy.at - serverNow()) / 1000 / (battleSpeedFactor() || 1))) : 0}</b><span class="t-dim">s</span></span>`}
       </div>` : null}
 
@@ -1461,11 +1508,17 @@ function MatchScreen() {
       <${Ticker} />
 
       <div class="gm__corner">
-        ${spectator || sandbox ? null : html`<${EmoteWheel} open=${emoteOpen} onToggle=${setEmoteOpen} onSend=${(id) => actions.emote(id)} onChat=${(text) => actions.chat(text)} chats=${chats} nameOf=${(pid) => nameOf(pub, pid)} disabled=${conn.status !== 'online'} />`}
+        ${spectator || sandbox || pub.endless ? null : html`<${EmoteWheel} open=${emoteOpen} onToggle=${setEmoteOpen} onSend=${(id) => actions.emote(id)} onChat=${(text) => actions.chat(text)} chats=${chats} nameOf=${(pid) => nameOf(pub, pid)} disabled=${conn.status !== 'online'} />`}
         <button type="button" class="gm__gear" aria-label=${t('设置')} title=${t('设置')} onClick=${() => setSettingsOpen(true)}><${GIcon} name="gear" /></button>
         <button type="button" class="gm__gear gm__guide" aria-label=${t('玩法说明')} title=${t('玩法说明')} onClick=${() => openGuide(0)}><${Icon} name="book" /></button>
         <${FullscreenButton} class="gm__gear gm__fs" />
       </div>
+
+      ${showPrep && !drag && viewKind !== 'loading' ? html`<div class="gm__zoombar" role="group" aria-label=${t('缩放棋盘')}>
+        <button type="button" class="gm__zoombar__btn" aria-label=${t('缩小')} title=${t('缩小')} onClick=${() => view?.zoomPrep(1 / 1.25)}>−</button>
+        <button type="button" class="gm__zoombar__btn" aria-label=${t('重置缩放')} title=${t('重置缩放')} onClick=${() => view?.resetCamView()}>⟲</button>
+        <button type="button" class="gm__zoombar__btn" aria-label=${t('放大')} title=${t('放大')} onClick=${() => view?.zoomPrep(1.25)}>＋</button>
+      </div>` : null}
 
       ${drawer ? html`<${EnemyDrawer} tab=${drawer} onTab=${setDrawer} pub=${pub} priv=${priv} onClose=${() => setDrawer(null)}
         bandId=${scoutBandId} bandOwner=${scoutBandOwner}

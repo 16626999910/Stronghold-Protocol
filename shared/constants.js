@@ -5,7 +5,7 @@ import { N_ } from './i18n.js';
 export const PROTOCOL_VERSION = 1;
 /** Release version shown to players (title screen, server banner, /healthz). Kept equal to package.json "version"
  * (test/version.test.js); PROTOCOL_VERSION above is the separate wire-format number. */
-export const APP_VERSION = '0.2.3';
+export const APP_VERSION = '0.2.5';
 /** A development build (the public `dev` branch): the title screen, the boot banner and the README say so, and
  * tools/package.mjs refuses to build a release zip from it without --allow-dev. */
 export const DEV_BUILD = /-dev$/.test(APP_VERSION);
@@ -81,10 +81,13 @@ export const MAX_AI_SEATS = 3;
  * `deployCapOff` = 取消部署上限 (the owner's request of 2026-10-13): the board's deploy cap (economy.deployCap, default
  * 8) is lifted — a player may deploy as many operators as the board holds (also lifts the per-round 部署上限 grants'
  * effect since there is no cap). Default OFF (opt-in).
+ * `noBan` = 不禁用盟约/干员 (the owner's request of 2026-10-13): the per-match ban draw is skipped entirely — no 禁用盟约,
+ * no 禁用干员 (drawDisabledBonds returns empty drawn/banned). Moved here from the old "≥BIG_TEAM_NO_BAN seats auto-skip"
+ * rule so it is an explicit host opt-in. Default OFF (opt-in).
  */
-export const ROOM_EXTENSIONS = Object.freeze(['revive', 'sharedLp', 'dupBand', 'bossPanel', 'deployCapOff']);
+export const ROOM_EXTENSIONS = Object.freeze(['revive', 'sharedLp', 'dupBand', 'bossPanel', 'deployCapOff', 'noBan']);
 /** Default of each room extension (a new room starts with these). */
-export const ROOM_EXTENSIONS_DEFAULT = Object.freeze({ revive: true, sharedLp: false, dupBand: false, bossPanel: true, deployCapOff: false });
+export const ROOM_EXTENSIONS_DEFAULT = Object.freeze({ revive: true, sharedLp: false, dupBand: false, bossPanel: true, deployCapOff: false, noBan: false });
 /**
  * 房间的「玩法扩展」是否全为默认 (author 2026-10-13): false = 用了非默认设置 (开了 sharedLp/dupBand/deployCapOff,
  * 或关了默认的 revive/bossPanel) → 该局属「非正规」, **不写入任何排行榜** (server/lobby.js onMatchEnd)。
@@ -227,6 +230,9 @@ export const ENDLESS = Object.freeze({
   // 就开始上涨 (GROWTH_FROM 5 → 1)。约每回合 ×1.2152 (+21.5%)。
   GROWTH_FROM: 1,       // 第 1 回合起开始成长 (author 2026-10-12: 5 → 1)
   GROWTH_STEP: 1.2152,  // 每回合 ×1.2152 (+21.5%)
+  // 成长倍率上限: 指数在极高回合会失控 (1.2152^r)，R134 起血池越过 2^53 后整数精度丢失、且会越过协议上限使上报帧被丢弃
+  // (社区反馈 2026-10-14 的无尽「打不掉血」)。封顶后 (≈R123 起) 血量/血池不再增长，所有战斗数值都 < 2^53 可精确表示。
+  GROWTH_CAP: 2e10,
   FUNDS_BONUS: 2,       // 每回合资金 +2 (在固定资金基础上)
   // 经济/商店 (author 2026-10-12, 细化): 无尽里**资金跨回合保留**(endPrep 不清零)，每 SHOP_EVERY 回合弹出一次
   // 「经济商店」(与「选藏品」同样的弹窗)—— 用资金买「转职」(每个盟约一张, 图标 = 该盟约图标) 与「装备」，买到的进**下方备战席**。

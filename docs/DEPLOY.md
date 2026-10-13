@@ -152,6 +152,7 @@ git checkout -- data/assets.json    # 素材清单由 setup 重新生成，先�
 git pull
 npm ci
 node tools/setup.mjs                # 补下载新增的素材（已有文件会跳过）
+node tools/setup.mjs --scenes       # 可选：本机下载+提取「官方战场场景」（3D 棋盘按战场贴图；跳过则仍用金属地块）
 powershell -ExecutionPolicy Bypass -File scripts\install-service-windows.ps1 -Restart
 ```
 

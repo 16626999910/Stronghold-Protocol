@@ -14,12 +14,12 @@
 .lb-col { min-width: 0; }
 .lb-col--boss { display: flex; flex-direction: column; min-width: 0; }
 .lb-col--endless { display: flex; flex-direction: column; gap: .16rem; min-width: 0; }
-.lb-col__h { display: flex; align-items: baseline; gap: .1rem; margin: 0 0 .1rem; font-size: .16rem; font-weight: 700; color: var(--text-md); }
+.lb-col__h { display: flex; align-items: baseline; gap: .1rem; margin: 0 0 .1rem; font-size: calc(.16 * var(--t)); font-weight: 700; color: var(--text-md); }
 .lb-eboard {
   min-width: 0; padding: .12rem .14rem; border: 1px solid var(--line); border-radius: .06rem; overflow: hidden;
   background: linear-gradient(180deg, rgba(16, 22, 20, .72), rgba(10, 14, 13, .72));
 }
-.lb-eboard__h { margin-bottom: .06rem; font-size: .15rem; font-weight: 700; color: var(--mint-400); }
+.lb-eboard__h { margin-bottom: .06rem; font-size: calc(.15 * var(--t)); font-weight: 700; color: var(--mint-400); }
 @media (max-width: 900px) { .lb-main { grid-template-columns: minmax(0, 1fr); gap: .2rem; } }
 
 /* the endless tables: fixed layout + explicit column widths so the team column wraps instead of forcing the table
@@ -33,7 +33,7 @@
 .lb-table--endless td:nth-child(2) { text-align: left; }
 .lb-endless__owner { display: inline-flex; align-items: center; gap: .04rem; max-width: 100%; }
 .lb-endless__owner .icon { width: .14rem; height: .14rem; color: #f0c14b; flex: 0 0 auto; }
-.lb-endless__team { font-size: .12rem; line-height: 1.35; }
+.lb-endless__team { font-size: calc(.12 * var(--t)); line-height: 1.35; }
 .lb-table--endless tr.lb-row { cursor: pointer; }
 .lb-table--endless tr.lb-row:hover td { background: rgba(23, 249, 183, .06); }
 
@@ -51,7 +51,7 @@
 }
 .lb-card__icon img { width: 100%; height: 100%; object-fit: cover; }
 .lb-card__icon .icon { width: .3rem; height: .3rem; }
-.lb-card__name { font-size: .18rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-card__name { font-size: calc(.18 * var(--t)); font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .lb-card__team {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .1rem;
@@ -59,40 +59,40 @@
   background: rgba(0, 0, 0, .32); color: var(--text); font: inherit; cursor: pointer;
 }
 .lb-card__team:hover { border-color: var(--mint-500); background: rgba(20, 28, 25, .7); }
-.lb-card__time { font-size: .22rem; font-weight: 700; color: var(--mint-400); letter-spacing: .01em; }
+.lb-card__time { font-size: calc(.22 * var(--t)); font-weight: 700; color: var(--mint-400); letter-spacing: .01em; }
 .lb-card__who { display: flex; flex-direction: column; gap: .02rem; min-width: 0; }
-.lb-card__owner { display: inline-flex; align-items: center; gap: .05rem; font-size: .16rem; color: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-card__owner { display: inline-flex; align-items: center; gap: .05rem; font-size: calc(.16 * var(--t)); color: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-card__owner .icon { width: .15rem; height: .15rem; color: #f0c14b; }
-.lb-card__mvp { font-size: .13rem; color: var(--text-lo); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-card__mvp { font-size: calc(.13 * var(--t)); color: var(--text-lo); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-card__mvp i { margin-left: .06rem; font-style: normal; color: var(--text-dim); }
-.lb-card__age { font-size: .12rem; color: var(--text-dim); white-space: nowrap; }
+.lb-card__age { font-size: calc(.12 * var(--t)); color: var(--text-dim); white-space: nowrap; }
 .lb-card__go { color: var(--text-dim); }
 .lb-card__none {
   padding: .1rem .12rem; border: 1px dashed var(--line-2); border-radius: .05rem;
-  font-size: .14rem; color: var(--text-dim); text-align: center; background: rgba(0, 0, 0, .18);
+  font-size: calc(.14 * var(--t)); color: var(--text-dim); text-align: center; background: rgba(0, 0, 0, .18);
 }
 
-.lb-note { display: flex; align-items: baseline; gap: .1rem; margin: 0; font-size: .13rem; }
+.lb-note { display: flex; align-items: baseline; gap: .1rem; margin: 0; font-size: calc(.13 * var(--t)); }
 
 /* ---- the detail (one run's 结算数据) ------------------------------------------------------------------ */
 .lb-detail { display: flex; flex-direction: column; gap: .12rem; }
-.lb-back { display: inline-flex; align-items: center; gap: .04rem; align-self: flex-start; padding: 0; border: none; background: none; color: var(--text-lo); font: inherit; font-size: .14rem; cursor: pointer; }
+.lb-back { display: inline-flex; align-items: center; gap: .04rem; align-self: flex-start; padding: 0; border: none; background: none; color: var(--text-lo); font: inherit; font-size: calc(.14 * var(--t)); cursor: pointer; }
 .lb-back:hover { color: var(--mint-400); }
 .lb-detail__head { display: flex; align-items: baseline; gap: .1rem; flex-wrap: wrap; }
-.lb-detail__head b { font-size: .2rem; }
-.lb-diff { font-size: .12rem; padding: 0 .06rem; border-radius: .04rem; background: rgba(255, 0, 36, .16); color: #ff5b6e; white-space: nowrap; }
-.lb-detail__time { font-size: .2rem; font-weight: 700; color: var(--mint-400); }
-.lb-table { width: 100%; border-collapse: collapse; font-size: .15rem; }
+.lb-detail__head b { font-size: calc(.2 * var(--t)); }
+.lb-diff { font-size: calc(.12 * var(--t)); padding: 0 .06rem; border-radius: .04rem; background: rgba(255, 0, 36, .16); color: #ff5b6e; white-space: nowrap; }
+.lb-detail__time { font-size: calc(.2 * var(--t)); font-weight: 700; color: var(--mint-400); }
+.lb-table { width: 100%; border-collapse: collapse; font-size: calc(.15 * var(--t)); }
 .lb-table th, .lb-table td { padding: .07rem .08rem; border-bottom: 1px solid var(--line-2); text-align: right; white-space: nowrap; }
 .lb-table th:first-child, .lb-table td:first-child { text-align: left; }
-.lb-table th { font-size: .12rem; font-weight: 500; color: var(--text-dim); }
+.lb-table th { font-size: calc(.12 * var(--t)); font-weight: 500; color: var(--text-dim); }
 .lb-table tr.is-mvp td { background: rgba(23, 249, 183, .07); }
 .lb-table tr.is-mvp td:first-child { color: var(--mint-400); font-weight: 700; }
-.lb-mvp-tag { margin-left: .06rem; font-size: .11rem; padding: 0 .05rem; border-radius: .03rem; background: rgba(23, 249, 183, .16); color: var(--mint-400); }
-.lb-title { display: block; font-size: .12rem; color: var(--text-dim); }
+.lb-mvp-tag { margin-left: .06rem; font-size: calc(.11 * var(--t)); padding: 0 .05rem; border-radius: .03rem; background: rgba(23, 249, 183, .16); color: var(--mint-400); }
+.lb-title { display: block; font-size: calc(.12 * var(--t)); color: var(--text-dim); }
 /* 无尽榜 · 队员的核心(专属)盟约 (leaderboard.js EndlessDetail) */
 .lb-detail__name { display: block; }
-.lb-core { display: inline-flex; align-items: center; gap: .03rem; margin-top: .02rem; font-size: .12rem; color: var(--mint-400); }
+.lb-core { display: inline-flex; align-items: center; gap: .03rem; margin-top: .02rem; font-size: calc(.12 * var(--t)); color: var(--mint-400); }
 .lb-core__ico { width: .16rem; height: .16rem; object-fit: contain; }
 
 .lb-empty { display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .5rem 0; color: var(--text-dim); text-align: center; }

@@ -69,22 +69,31 @@ export class PlayerPrep {
 
   /**
    * Prep deadline: every temp piece due at this prep (tempDue ≤ prepsEnded) is resolved — a chess is sold back (its
-   * pool copies return, its summons are removed), items are destroyed, the summon stack of an owner still on the board
-   * is removed and comes back at the next round start (startRound → grantTokensFor; PRTS "干员所属召唤物会于下一回合
-   * 返还"). Pieces that overflowed after the player could no longer act on them (after Ready, at the prep end) are kept
-   * for the next prep.
+   * pool copies return, its summons are removed), a summon stack (token) is removed and comes back at the next round
+   * start (startRound → grantTokensFor; PRTS "干员所属召唤物会于下一回合返还"). An ITEM is KEPT (this build's rule,
+   * author 2026-10 — never silently destroyed): its due is pushed to the next prep, so it waits in the 临时整备区 —
+   * recompute's _fillHandFromTemp moves it into a free hand slot the moment one appears (a sale / a deployment / using
+   * another item), and Ready stays blocked (treat it like any overflow). Pieces that overflowed after the player could
+   * no longer act on them (after Ready, at the prep end) are kept for the next prep too.
    */
   resolveTemp() {
     let changed = false;
     for (let i = 0; i < this.temp.length; i++) {
       const p = this.temp[i];
       if (!p || this.tempDue(p) > this.prepsEnded) continue;
-      this.temp[i] = null;
-      this._tempDue.delete(p.uid);
       changed = true;
       if (p.kind === 'chess') {
+        this.temp[i] = null;
+        this._tempDue.delete(p.uid);
         this.removeTokensOf(p.uid);
         this.returnCopies(p);
+      } else if (p.kind === 'item') {
+        // 道具保留到下一回合（作者 2026-10：临时道具不再在休整期截止时静默销毁）
+        this._tempDue.set(p.uid, this.prepsEnded + 1);
+      } else {
+        // a summon stack (token): removed here, re-granted by its owner at the next round start (grantTokensFor)
+        this.temp[i] = null;
+        this._tempDue.delete(p.uid);
       }
     }
     if (changed) this.recompute();

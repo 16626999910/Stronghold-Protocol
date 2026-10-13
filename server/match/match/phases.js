@@ -24,6 +24,7 @@ export class MatchPhases {
 
   maybeEndInfo() {
     if (this.phase !== PHASE.INFO_CHECK) return;
+    if (this.reroll) return; // 重刷本局: hold the briefing open while the vote runs (never advance mid-vote)
     if (this.order.every((p) => p.isBot || p.left || p.infoReady)) {
       this.setDeadline(0);
       this.later(0, () => { if (this.phase === PHASE.INFO_CHECK) this.enterBandDraft(); });
@@ -229,7 +230,7 @@ export class MatchPhases {
   startRound(r) {
     this.phase = PHASE.ROUND_START;
     this.round = r;
-    // 无尽模式: sync the enemy ×2 growth for this round (the sim applies it via statFlags → enemyStatMul)
+    // 无尽模式: sync the per-round enemy stat growth for this round (the sim applies it via statFlags → enemyStatMul)
     if (this.endless) this.endless.growth = this.endlessGrowth(r);
     this.fields = [];
     this.watchers.clear();

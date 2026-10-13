@@ -22,14 +22,17 @@
 
 import http from 'node:http';
 import { getData, loadData } from './data.js';
-import { ROOT, listenAddress, serveDirs, makeLogger, parseTrustProxy } from './http/config.js';
+import { ROOT, listenAddress, bindCandidates, serveDirs, makeLogger, parseTrustProxy, assetIndexOptionsFrom } from './http/config.js';
 import { WS_MAX_PAYLOAD, createSessionStack, attachWebSocket } from './http/websocket.js';
 import { DATA_SHIM_JS, createStaticHandler } from './http/static.js';
 import { createPackRegistry } from './packs.js';
 import { createSimPool, defaultSimWorkers } from './match/simPool.js';
-import { MIME, COMPRESSIBLE, acceptsGzip, parseRange } from './http/files.js';
+import { MIME, COMPRESSIBLE, acceptsGzip, pickEncoding, parseRange } from './http/files.js';
 import { BUILD_INPUTS, computeBuildTag, buildTag, resetBuildTag } from './http/buildTag.js';
 import { createRequestHandler } from './http/routes.js';
+import { createTrafficCounter } from './http/traffic.js';
+import { createAssetIndex } from './http/assetIndex.js';
+import { createManifestViews } from './http/assetViews.js';
 import { answerClientError } from './http/common.js';
 import { lanUrls, isProcessEntry, runMain } from './http/boot.js';
 import { restartAtFrom } from './http/restart.js';
@@ -37,7 +40,7 @@ import { restartAtFrom } from './http/restart.js';
 // The public API of this module (tests and tools import it from here); the code lives in ./http/.
 export {
   ROOT, WS_MAX_PAYLOAD, DATA_SHIM_JS, MIME, COMPRESSIBLE, BUILD_INPUTS, computeBuildTag, buildTag, resetBuildTag,
-  acceptsGzip, parseRange, createStaticHandler, lanUrls, parseTrustProxy,
+  acceptsGzip, pickEncoding, parseRange, createStaticHandler, lanUrls, parseTrustProxy,
 };
 
 /**
@@ -75,33 +78,64 @@ export async function startServer(opts = {}) {
   // content packs (docs/PACKS.md): scanned now — the start log names them — and again whenever their folders change
   const packs = createPackRegistry({ publicDir, dataDir, packsDir }, { log });
   packs.refresh(true);
-  const serveStatic = createStaticHandler({ publicDir, dataDir, sharedDir, packsDir, packs, log });
+  // the content hashes of the art (built in the background once listening) and the served manifests that name them
+  const indexOptions = assetIndexOptionsFrom(opts, publicDir);
+  const assetIndex = indexOptions ? createAssetIndex({ publicDir, log, ...indexOptions }) : null;
+  const views = assetIndex ? createManifestViews({ dataDir, index: assetIndex, log }) : null;
+  const serveStatic = createStaticHandler({ publicDir, dataDir, sharedDir, packsDir, packs, log, assetIndex, views });
   const startedAt = Date.now();
   // The tag is per process (see buildTag): read the browser runtime once, here, not on every /healthz.
   resetBuildTag();
   buildTag();
 
-  const server = http.createServer(createRequestHandler({ serveStatic, health: { startedAt, network, registry, lobby }, log }));
+  const traffic = createTrafficCounter();
+  const server = http.createServer(createRequestHandler({
+    serveStatic, log, trustProxy: network.opts?.trustProxy ?? parseTrustProxy(process.env.TRUST_PROXY),
+    health: { startedAt, network, registry, lobby, traffic, assetIndex, views },
+  }));
   server.on('clientError', answerClientError);
-  const wss = attachWebSocket(server, { network, log });
+  const wss = attachWebSocket(server, { network, log, traffic });
 
+  // The address actually bound. The default may fall back to IPv4; the returned host and url follow that.
+  let boundHost;
   try {
-    await new Promise((resolve, reject) => {
-      const onError = (e) => { server.off('listening', onListening); reject(e); };
-      const onListening = () => { server.off('error', onError); resolve(); };
-      server.once('error', onError);
-      server.once('listening', onListening);
-      server.listen(port, host);
-    });
+    // A host with IPv6 switched off refuses '::'. Fall back to IPv4 rather than not booting. Only the default is
+    // retried: an explicit HOST is literal (server/http/config.js bindCandidates).
+    let bound = null;
+    let lastError = null;
+    const candidates = bindCandidates(host);
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      try {
+        await new Promise((resolve, reject) => {
+          const onError = (e) => { server.off('listening', onListening); reject(e); };
+          const onListening = () => { server.off('error', onError); resolve(); };
+          server.once('error', onError);
+          server.once('listening', onListening);
+          server.listen(port, candidate);
+        });
+        bound = candidate;
+        break;
+      } catch (e) {
+        lastError = e;
+        const retry = ['EAFNOSUPPORT', 'EADDRNOTAVAIL', 'EINVAL'].includes(e.code) && i < candidates.length - 1;
+        if (!retry) break;
+        log.warn(`[boot] cannot bind ${candidate} (${e.code}) — falling back to IPv4 only`);
+      }
+    }
+    if (bound === null) throw lastError;
+    boundHost = bound;
   } catch (e) {
     network.close(); // stop heartbeat/sweep timers of the half-built server
+    assetIndex?.close();
     throw e;
   }
   server.on('error', (e) => log.error('[http] server error', e));
+  assetIndex?.start();
 
   const addr = server.address();
   const actualPort = typeof addr === 'object' && addr ? addr.port : port;
-  const url = `http://${host === '0.0.0.0' || host === '::' ? 'localhost' : host}:${actualPort}`;
+  const url = `http://${boundHost === '0.0.0.0' || boundHost === '::' ? 'localhost' : boundHost}:${actualPort}`;
 
   let closing = null;
   async function close() {
@@ -109,6 +143,7 @@ export async function startServer(opts = {}) {
     closing = (async () => {
       try { lobby.shutdown('shutdown'); } catch (e) { log.error('[shutdown] lobby', e); }
       network.close();
+      assetIndex?.close();
       try { simPool?.dispose(); } catch (e) { log.error('[shutdown] sim pool', e); }
       await new Promise((resolve) => {
         server.close(() => resolve());
@@ -120,7 +155,7 @@ export async function startServer(opts = {}) {
     return closing;
   }
 
-  return { port: actualPort, host, url, server, wss, lobby, network, registry, packs, restartAt, simPool, close };
+  return { port: actualPort, host: boundHost, url, server, wss, lobby, network, registry, packs, restartAt, simPool, traffic, assetIndex, views, close };
 }
 
 // `node server/index.js` / npm start: listen, print the banner, stop on SIGINT / SIGTERM (http/boot.js).

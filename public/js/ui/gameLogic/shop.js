@@ -86,6 +86,7 @@ export function completesMerge(priv, slot, { getChess = () => null, getItem = ()
   if (slot.kind === 'item') {
     const rec = getItem(slot.id);
     if (!rec || rec.isGolden || rec.itemType !== 'EQUIP' || !rec.mergeable) return false;
+    if (priv?.endless && typeof rec.giveBondId === 'string') return false; // 转职不可合成 (无尽; mirror _itemMergeable)
     const n = Number.isInteger(rec.upgradeNum) ? rec.upgradeNum : itemMergeCount;
     if (!(n > 1 && n < 100) || !getItem(rec.upgradeChessId || rec.goldenId)) return false;
     let have = 0;

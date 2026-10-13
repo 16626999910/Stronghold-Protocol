@@ -301,8 +301,14 @@ H.SERVER_MOST_BOND = {
     }
     const order = best.length > 1 ? ctx.rng.shuffle(best.slice()) : best;
     for (const bond of order) {
-      const id = ctx.rollChess({ bond, maxTier: 6 });
-      if (id && ctx.grantChess(id)) return;
+      // rollChess may land on an operator whose shared-pool copies are all taken; grantChess then returns null and the
+      // 特质 would silently give nothing (community report: 「无尽里余的特质没有用」 — a depleted bond is the usual cause
+      // in a long 4-player endless). Retry within the bond, then fall through to the next tied bond.
+      for (let i = 0; i < 8; i++) {
+        const id = ctx.rollChess({ bond, maxTier: 6 });
+        if (!id) break;                        // bond has no rollable operator at all
+        if (ctx.grantChess(id)) return;
+      }
     }
   },
 };

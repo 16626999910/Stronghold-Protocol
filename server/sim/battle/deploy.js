@@ -73,6 +73,10 @@ export class BattleDeploy {
   /** Mark `unit` dead (hp reached 0). Fires `kill` then `death`. */
   kill(unit, killer = null) {
     if (!unit || !unit.alive) return;
+    // 打桩桩 (def.immortal): 处决类效果 (battle.kill) 也不得击杀 —— 只让伤害管线 honour immortal 是不够的。嵯峨 S2 等
+    // 会对「hp ≤ 1」的目标直接 battle.kill，而桩血线恰被锁在 1 → 桩被打死 → 30s 打桩提前 'cleared'、分数被截断
+    // (社区反馈 2026-10-14 前系统排查)。
+    if (unit.def && unit.def.immortal) return;
     unit.hp = 0;
     // 无尽狂潮 杀戮成长 (battle.flags.relicRampage): 击杀敌人 → 全队攻击在战斗内叠加 (给存活干员刷新持久 buff)
     const rp = this.flags && this.flags.relicRampage;

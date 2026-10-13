@@ -17,6 +17,11 @@
 
 export const MIRRORS_URL = '/data/asset-mirrors.json';
 
+// 内容哈希 (0.2.6 移植): the served manifest names `/assets/~<hash>/…` (shared/assetPaths.js). The mirror repositories
+// only carry the plain paths, so mirror candidates strip the hash segment; the origin keeps the hashed one (the game
+// server serves it and the browser may cache it for a year).
+import { unhashedUrl } from '../../shared/assetPaths.js';
+
 /** Default stall timeout (ms): a mirror that sends nothing for this long is dropped for the next candidate. */
 export const STALL_MS = 15_000;
 /** How long a stalled / failing mirror is demoted for (ms) before it is tried again. */
@@ -105,7 +110,9 @@ export function isAssetPath(path) {
  */
 export function mirrorCandidates(path, mirrors, direct = true) {
   if (!isAssetPath(path)) return direct ? [path] : [];
-  const list = (Array.isArray(mirrors) ? mirrors : []).map((m) => m + path);
+  // mirrors carry the plain paths; only the origin gets the content-hashed URL (unhashedUrl is a no-op without one)
+  const plain = unhashedUrl(path);
+  const list = (Array.isArray(mirrors) ? mirrors : []).map((m) => m + plain);
   return direct ? [...list, path] : list;
 }
 

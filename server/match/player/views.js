@@ -93,6 +93,7 @@ export class PlayerViews {
         endless: true, // 无尽狂潮: 客户端据此隐藏「剩余资金将清零」提示 (资金跨回合保留)
         relics: Object.entries(this.relics || {}).map(([id, count]) => ({ id, count })),
         relicsView: this.m.endlessRelicSummaryFor(this), // 自己的藏品库 (不和队友合并)
+        relicCombos: this.m.endlessComboView(this), // 套装/组合的触发状态 (藏品栏「组合」行 + 选择卡进度)
         // 经济商店弹窗 (每 SHOP_EVERY 回合): 转职 + 装备, 用资金买 (g.econBuy)
         econOffer: this.econOffer ? {
           round: this.econOffer.round,

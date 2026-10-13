@@ -251,6 +251,9 @@ export class PlayerAcquire {
   _itemMergeable(id) {
     const rec = this.gd.item(id);
     if (!rec || rec.isGolden || rec.itemType !== 'EQUIP' || !rec.mergeable) return false;
+    // 无尽狂潮: a 转职 (a `giveBondId` bond-signature item, bought one at a time from the every-10-round econ shop) never
+    // merges — two identical copies just sit side by side instead of fusing into a golden one.
+    if (this.m && this.m.endless && typeof rec.giveBondId === 'string') return false;
     const n = Number.isInteger(rec.upgradeNum) ? rec.upgradeNum : this.gd.itemMergeCount;
     if (!(n > 1 && n < 100)) return false;
     const gid = rec.upgradeChessId || rec.goldenId;

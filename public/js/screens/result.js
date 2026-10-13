@@ -64,13 +64,15 @@ export function LineupThumb({ u, gd }) {
     title=${si ? t('{name}（{note}）', { name: si.name, note: standInForText(chess.name) }) : undefined} />`;
 }
 
-function PlayerCard({ p, myId, titles, best, solo = false }) {
+function PlayerCard({ p, myId, titles, best, solo = false, endless = false }) {
   const gd = useGameData();
   const titleRec = p.title ? titles.find((x) => x.id === p.title.id) || null : null;
   // (the server sends the title's Chinese name: the localized config.titles record when it is that record's)
   const rawTitle = p.title ? (data.getRaw('config')?.titles || []).find((x) => x && x.id === p.title.id) || null : null;
   const titleName = sentText(p.title?.name, rawTitle?.name, titleRec?.name) || titleRec?.name || null;
-  const stats = STAT_ROWS.filter(([k]) => Number.isFinite(p.stats[k])).slice(0, 7);
+  // 无尽模式: 这一行统计的是「打桩伤害」而不是「领袖伤害」(结算页标签)
+  const stats = STAT_ROWS.filter(([k]) => Number.isFinite(p.stats[k])).slice(0, 7)
+    .map(([k, label]) => [k, k === 'bossDamage' && endless ? N_('打桩伤害') : label]);
   // 无尽模式: list every drafted strategy (bandId first); a normal match's single band otherwise
   const bandList = (p.bandIds && p.bandIds.length ? p.bandIds : p.bandId ? [p.bandId] : []).map((id) => gd.band(id)).filter(Boolean);
   const lineup = p.lineup.slice(0, 10);
@@ -147,7 +149,7 @@ export function ResultScreen() {
         <div class="result__medals">
           ${boss || endless ? html`<div class=${cx('medal', r.victory && 'is-done')} title=${endless ? t('源石虫') : boss.name}>
             <${Img} src=${enemyIconUrl(gd.m, endless ? ENDLESS.DUMMY_ENEMY : boss.enemyKey)} /><span class="medal__check">${r.victory ? html`<${Icon} name="check" />` : html`<${Icon} name="close" />`}</span>
-            <span class="medal__label">${t('敌方领袖')}</span></div>` : null}
+            <span class="medal__label">${endless ? t('源石虫') : t('敌方领袖')}</span></div>` : null}
           ${hidden ? html`<div class=${cx('medal', 'medal--hidden', r.hiddenCleared && 'is-done')} title=${hidden.name}>
             <${Img} src=${enemyIconUrl(gd.m, hidden.enemyKey)} /><span class="medal__check">${r.hiddenCleared ? html`<${Icon} name="check" />` : html`<${Icon} name="close" />`}</span>
             <span class="medal__label">${t('隐秘核心')}</span></div>` : null}
@@ -159,7 +161,7 @@ export function ResultScreen() {
       </section>
       <section class="result__players">
         <h2 class="brief-h"><span>${t('同盟成员')}</span><${MicroLabel}>ALLIANCE REPORT</${MicroLabel}></h2>
-        ${r.players.length ? r.players.map((p) => html`<${PlayerCard} key=${p.playerId} p=${p} myId=${myId} titles=${titles} best=${best} solo=${r.players.length < 2} />`)
+        ${r.players.length ? r.players.map((p) => html`<${PlayerCard} key=${p.playerId} p=${p} myId=${myId} titles=${titles} best=${best} solo=${r.players.length < 2} endless=${endless} />`)
           : html`<p class="t-dim">${t('暂无结算数据')}</p>`}
       </section>
     </main>

@@ -74,7 +74,8 @@ function diyCells(priv) {
   const dat = { chess: data.get('chess'), backups: data.get('backups') };
   const out = [];
   for (const slot of listOf('chess')) {
-    if (!slot.isDiy) continue;
+    // 每个自选槽位有普通 _a 和精锐 _b 两条记录: 只取普通那条, 否则同一槽位在组里出现两次、点精锐格会直接白送精锐
+    if (!slot.isDiy || slot.isGolden) continue;
     const rec = ownDiyRecord(slot, priv, dat);
     if (rec) out.push({ id: idOf(slot), rec }); // buy the slot; draw the picked operator
   }

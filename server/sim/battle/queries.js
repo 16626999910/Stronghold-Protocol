@@ -95,7 +95,9 @@ export class BattleQueries {
     const set = keys instanceof Set ? keys : (healer && healer.rangeKeys === keys && healer.rangeKeySet ? healer.rangeKeySet : new Set(keys));
     const through = healer && healer.profile && typeof healer.profile.healThrough === 'function' ? healer.profile.healThrough : null;
     for (const a of this.allyUnits) {
-      if (!a.alive || !a.deployed || a.hidden || a.kind === 'device') continue;
+      // 不可选中 (untargetable) is honoured by every enemy selector (targeting/queries); a healer must respect it too,
+      // or it keeps healing 陷阱 summon tokens (望的棋子 / 诗怀雅的香槟炸弹) that no one may hit — community report 2026-10-14
+      if (!a.alive || !a.deployed || a.hidden || a.s.flags.untargetable || a.kind === 'device') continue;
       if (!set.has(a.tileR * COLS + a.tileC)) continue;
       if (a !== healer && ((a.s.flags.noHeal && !(through && through(healer, a))) || (a.profile && a.profile.noHeal))) continue;
       const injured = a.hp < a.s.maxHp - 1e-6;
