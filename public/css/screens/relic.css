@@ -1,0 +1,160 @@
+/* ==========================================================================================
+   screens/relic.css — 无尽狂潮 肉鸽: 藏品/专属盟约/决策 选择弹窗 (ui/relicOverlay.js) + 顶部藏品库栏。
+   一个弹窗里 3 张竖向长方卡片 (参考官方/肉鸽的 3选1 卡), 大图标 + 名称 + 稀有度 + 效果;
+   「炫彩」= 棱彩/虹彩 (gradient 彩边 + 光晕), 不是单色。
+   ========================================================================================== */
+
+.relicov { display: flex; flex-wrap: nowrap; gap: min(.34rem, 2vw); margin-top: .2rem; align-items: stretch; justify-content: center; max-width: 100%; }
+.reliccard {
+  position: relative;
+  /* 自适应: 3 张卡永远塞进视口, 不滚动/不被遮 (宽度受 vw 限制, 高度受 vh 限制) */
+  flex: 0 0 auto; width: min(3.8rem, 29vw); min-height: min(6.4rem, 60vh);
+  display: flex; flex-direction: column; align-items: stretch; text-align: left;
+  cursor: pointer; overflow: hidden;
+  border-radius: .16rem; border: 3px solid var(--rc, #9fb0a6);
+  background: linear-gradient(180deg, rgba(30, 38, 34, .96), rgba(14, 18, 16, .98));
+  color: var(--ink-1, #e8f0ea); transition: transform .12s var(--ease-out, ease), box-shadow .12s;
+}
+.reliccard:hover { transform: translateY(-.06rem) scale(1.02); box-shadow: 0 0 .4rem var(--rc, #9fb0a6); }
+
+.reliccard.is-white { --rc: #9fb0a6; --rcg: rgba(159, 176, 166, .5); }
+.reliccard.is-blue  { --rc: #5aa9ff; --rcg: rgba(90, 169, 255, .55); }
+.reliccard.is-gold  { --rc: #f0b429; --rcg: rgba(240, 180, 41, .55); }
+
+/* 棱彩 (炫彩): 彩虹描边 + 光晕, 不是紫色 */
+.reliccard.is-color {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(180deg, rgba(26, 32, 28, .96), rgba(12, 16, 14, .98)) padding-box,
+    linear-gradient(135deg, #ff6f91, #ffd166, #7ef0c0, #5aa9ff, #c08bff, #ff6f91) border-box;
+  box-shadow: 0 0 .18rem rgba(150, 120, 255, .45), 0 0 .34rem rgba(90, 200, 255, .25);
+}
+.reliccard.is-color:hover { box-shadow: 0 0 .3rem rgba(190, 130, 255, .6), 0 0 .5rem rgba(90, 220, 255, .35); }
+
+/* ── 专属盟约 / 核心盟约藏品: 各盟约一套主题配色 (取代通用彩虹) ─────────────────────────── */
+.reliccard.reliccard--bond {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(180deg, rgba(28, 30, 28, .97), rgba(10, 12, 11, .99)) padding-box,
+    linear-gradient(158deg, var(--b1, #cfa86a), var(--b2, #7a5a2a)) border-box;
+  box-shadow: 0 0 .22rem var(--rcg, rgba(200, 170, 100, .5)), inset 0 0 .7rem rgba(0, 0, 0, .55);
+}
+.reliccard.reliccard--bond:hover { box-shadow: 0 0 .42rem var(--rcg, rgba(200, 170, 100, .6)), inset 0 0 .7rem rgba(0, 0, 0, .55); }
+.reliccard.reliccard--bond::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: .06rem;
+  background: linear-gradient(90deg, transparent, var(--b1, #cfa86a), var(--b2, #7a5a2a), transparent); opacity: .9; }
+.reliccard.reliccard--bond .reliccard__top {
+  background:
+    radial-gradient(62% 74% at 50% 40%, var(--rcg, rgba(200, 170, 100, .5)), transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--b2, #7a5a2a) 22%, transparent), transparent 80%);
+}
+.reliccard.reliccard--bond .reliccard__art {
+  border-color: transparent;
+  background:
+    linear-gradient(rgba(4, 6, 5, .5), rgba(4, 6, 5, .5)) padding-box,
+    linear-gradient(150deg, var(--b1, #cfa86a), var(--b2, #7a5a2a)) border-box;
+  box-shadow: 0 0 .3rem var(--rcg, rgba(200, 170, 100, .55));
+}
+.reliccard.reliccard--bond .reliccard__rarity {
+  color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .7);
+  background: linear-gradient(90deg, var(--b1, #cfa86a), var(--b2, #7a5a2a));
+}
+.reliccard.reliccard--bond .reliccard__name { color: #fff; text-shadow: 0 2px .12rem rgba(0, 0, 0, .7); }
+/* 经济商店弹窗 (无尽狂潮): 转职/装备 卡 —— 一排整齐铺满, 深色高对比, 不换行不滚动 */
+.relicov--econ { flex-wrap: nowrap; gap: min(.18rem, 1.2vw); }
+.reliccard--econ { --b1: #5aa9ff; --b2: #26386f; --rc: #7fb0ff; --rcg: rgba(120, 170, 255, .5);
+  flex: 1 1 0; width: auto; min-width: 0; min-height: min(3.7rem, 34vh); border-width: 2px;
+  background: linear-gradient(180deg, #1a2230, #0c121b); }
+.reliccard--econ .reliccard__top { height: min(1.8rem, 15vh); }
+.reliccard--econ .reliccard__art { width: min(1.5rem, 12vh); height: min(1.5rem, 12vh); border-width: 2px; }
+.reliccard--econ .reliccard__art img { width: 82%; height: 82%; }
+/* 价格: 深底 + 亮金数字 —— 高对比 */
+.reliccard--econ .reliccard__rarity { font-size: min(.16rem, 1.2vw); font-weight: 800; padding: .01rem .12rem; bottom: .07rem; letter-spacing: .02em;
+  color: #ffd166; background: rgba(4, 8, 14, .92); border: 1px solid rgba(255, 209, 102, .75); }
+.reliccard--econ .reliccard__name { font-size: min(.22rem, 1.7vw); color: #eef4ff; text-shadow: 0 1px 3px #000; padding: .1rem .08rem .02rem; }
+/* 转职/装备 标签: 亮底 + 深字 */
+.reliccard--econ .reliccard__bondtag { font-size: min(.14rem, 1.05vw); font-weight: 800; padding: .01rem .1rem; letter-spacing: .03em; margin-bottom: .08rem;
+  color: #071322; background: linear-gradient(90deg, #d6ecff, #9cc6ff); box-shadow: 0 0 .1rem rgba(120, 170, 255, .5); }
+.reliccard--econ .reliccard__text { flex: 0 1 auto; font-size: min(.13rem, 1vw); line-height: 1.4; color: #c7d4e6; padding: .02rem .08rem .14rem; }
+.reliccard--econ.is-sold { opacity: .45; filter: grayscale(.6); cursor: default; }
+/* 经济商店: 「只能购买一件」提示 */
+.econ__hint { display: flex; align-items: center; justify-content: center; gap: .05rem; margin: .1rem 0 0; font-size: min(.15rem, 1.15vw);
+  color: var(--amber-500, #f0b429); font-weight: 700; }
+.econ__hint .icon { width: .16rem; height: .16rem; }
+.econ__hint.is-bought { color: var(--mint-300, #7fe6b6); }
+.reliccard__bondtag {
+  display: block; align-self: center; margin: -.02rem auto .04rem;
+  font-size: .15rem; font-weight: 800; letter-spacing: .12em; padding: .02rem .16rem; border-radius: .08rem;
+  color: #fff; background: linear-gradient(90deg, var(--b1, #cfa86a), var(--b2, #7a5a2a));
+  box-shadow: 0 0 .12rem var(--rcg, rgba(200, 170, 100, .5));
+}
+
+/* 炎 — 赤霄·赤红/余烬金 */
+.reliccard.bd-yanShip          { --b1: #ff7a45; --b2: #b4161f; --rc: #ff5a3c; --rcg: rgba(255, 90, 60, .55); }
+/* 萨尔贡 — 沙漠·琥珀/赤金 */
+.reliccard.bd-sargonShip       { --b1: #ffd46a; --b2: #b8791a; --rc: #e8b23a; --rcg: rgba(232, 178, 58, .55); }
+/* 维多利亚 — 皇家·钴蓝/钢蓝 */
+.reliccard.bd-victoriaShip     { --b1: #8fa8ff; --b2: #34429c; --rc: #6b86e8; --rcg: rgba(107, 134, 232, .55); }
+/* 谢拉格 — 雪山·冰青/霜白 */
+.reliccard.bd-kjeragShip       { --b1: #c4f2ff; --b2: #2f9ec0; --rc: #7fd6ee; --rcg: rgba(127, 214, 238, .55); }
+/* 拉特兰 — 圣城·圣金/白金 */
+.reliccard.bd-lateranoShip     { --b1: #fff4b0; --b2: #cf9a1e; --rc: #f5d35a; --rcg: rgba(245, 211, 90, .58); }
+/* 阿戈尔 — 深海·幽青/渊蓝 */
+.reliccard.bd-egirShip         { --b1: #58f0d8; --b2: #18408f; --rc: #35c9b6; --rcg: rgba(53, 201, 182, .55); }
+/* 叙拉古 — 家族·酒红/暗紫 */
+.reliccard.bd-siracusaShip     { --b1: #d4647a; --b2: #6d1636; --rc: #c04a68; --rcg: rgba(192, 74, 104, .55); }
+/* 卡西米尔 — 骑士·银白/钢灰蓝 */
+.reliccard.bd-kazimierzShip    { --b1: #eaf1fb; --b2: #6e83a6; --rc: #c2cfe0; --rcg: rgba(194, 207, 224, .5); }
+
+
+/* 顶部图标区 (稀有度色环 + 光晕) */
+.reliccard__top { position: relative; display: block; height: min(2.9rem, 24vh);
+  background: radial-gradient(60% 70% at 50% 42%, var(--rcg, rgba(159, 176, 166, .4)), transparent 70%);
+}
+.reliccard.is-color .reliccard__top {
+  background: radial-gradient(60% 72% at 50% 42%, rgba(200, 150, 255, .38), rgba(90, 200, 255, .2) 45%, transparent 72%);
+}
+.reliccard__art {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(2.4rem, 20vh); height: min(2.4rem, 20vh); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 3px solid var(--rc, #9fb0a6);
+  background: rgba(0, 0, 0, .35); box-shadow: 0 0 .28rem var(--rcg, rgba(159, 176, 166, .5));
+}
+.reliccard.is-color .reliccard__art {
+  border-color: transparent;
+  background:
+    linear-gradient(rgba(0, 0, 0, .4), rgba(0, 0, 0, .4)) padding-box,
+    linear-gradient(135deg, #ff6f91, #ffd166, #7ef0c0, #5aa9ff, #c08bff) border-box;
+}
+.reliccard__art img { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 .03rem .05rem rgba(0, 0, 0, .6)); }
+.reliccard__glyph { font-size: .8rem; color: var(--rc, #9fb0a6); }
+
+.reliccard__rarity {
+  position: absolute; left: 50%; bottom: .1rem; transform: translateX(-50%);
+  font-size: .16rem; font-weight: 800; letter-spacing: .08em; padding: .01rem .12rem; border-radius: .08rem;
+  color: #06110b; background: var(--rc, #9fb0a6);
+}
+.reliccard.is-color .reliccard__rarity {
+  color: #06110b;
+  background: linear-gradient(90deg, #ff6f91, #ffd166, #7ef0c0, #5aa9ff, #c08bff);
+}
+.reliccard__name { font-size: min(.28rem, 2.2vw); font-weight: 800; text-align: center; padding: .18rem .14rem .06rem; line-height: 1.25; }
+.reliccard__text { flex: 1 1 auto; font-size: min(.17rem, 1.3vw); line-height: 1.7; color: var(--ink-2, #9fb0a6); padding: .06rem .2rem .22rem; text-align: center; }
+
+/* 顶部「藏品库」栏 */
+.relicbar {
+  position: fixed; left: 50%; top: .1rem; transform: translateX(-50%); z-index: 6;
+  display: flex; align-items: center; gap: .08rem; padding: .05rem .12rem;
+  background: rgba(8, 11, 10, .82); border: 1px solid rgba(255, 255, 255, .12); border-radius: .09rem;
+  pointer-events: auto;
+}
+.relicbar__title { font-size: .13rem; color: var(--amber-500, #f0b429); font-weight: 700; letter-spacing: .02em; }
+.relicbar__stats { font-size: .11rem; color: var(--mint-300, #7fe6b6); font-weight: 700; cursor: help; padding: 0 .02rem; }
+.relicbar__list { display: flex; gap: .05rem; }
+.relicbar__item { position: relative; width: .3rem; height: .3rem; cursor: help; }
+.relicbar__icon { width: 100%; height: 100%; object-fit: contain; }
+.relicbar__glyph { display: inline-flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: .16rem; color: var(--ink-2, #9fb0a6); }
+.relicbar__count {
+  position: absolute; right: -.02rem; bottom: -.02rem; font-size: .1rem; font-weight: 800; color: #06110b;
+  background: var(--amber-500, #f0b429); border-radius: .04rem; padding: 0 .03rem; line-height: 1.1;
+}

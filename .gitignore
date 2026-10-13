@@ -1,0 +1,8 @@
+﻿node_modules/
+public/assets/
+leaderboard/leaderboard.json
+feedback/feedback.json
+launcher.log
+launcher.config.json
+*.log
+.DS_Store

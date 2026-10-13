@@ -1,0 +1,105 @@
+/* 沙盒模式「控制台」(this build) — public/js/ui/sandboxConsole.js. Replaces the shop bar (.gm__shop area) in a sandbox match. */
+
+.sbx {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: min(1120px, 96vw); max-height: 46vh; display: flex; flex-direction: column;
+  z-index: 24; pointer-events: auto;
+  background: rgba(10, 13, 12, .95); border: 1px solid var(--line-2); border-bottom: 0;
+  border-radius: .08rem .08rem 0 0; box-shadow: 0 -.04rem .3rem rgba(0, 0, 0, .5);
+  color: var(--text-md); font-size: .18rem;
+}
+.sbx.is-min { width: auto; }
+.sbx__head { display: flex; align-items: center; gap: .1rem; padding: .08rem .16rem; border-bottom: 1px solid var(--line); }
+.sbx__head .icon { width: .24rem; height: .24rem; color: var(--amber, #f6a329); flex: none; }
+.sbx__title { font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
+.sbx__tabs { display: flex; gap: .04rem; margin-left: .12rem; }
+.sbx__tab {
+  padding: .06rem .16rem; background: transparent; border: 1px solid var(--line-2); border-radius: .04rem;
+  color: var(--text-lo); font-size: .17rem; cursor: pointer; transition: color var(--t-fast), border-color var(--t-fast), background-color var(--t-fast);
+}
+.sbx__tab:hover { color: var(--text-md); }
+.sbx__tab.is-on { color: #0b1822; background: var(--amber, #f6a329); border-color: var(--amber, #f6a329); font-weight: 700; }
+.sbx__search { flex: 1 1 auto; min-width: 1.4rem; max-width: 3rem; height: .34rem; padding: 0 .12rem; background: rgba(255,255,255,.06); border: 1px solid var(--line-2); border-radius: .04rem; color: var(--text-md); font-size: .17rem; }
+.sbx__hint { flex: 1 1 auto; color: var(--text-lo); }
+.sbx__collapse { width: .34rem; height: .34rem; display: grid; place-items: center; background: transparent; border: 0; color: var(--text-lo); cursor: pointer; }
+.sbx__collapse:hover { color: var(--text-md); }
+.sbx__body { overflow: auto; padding: .1rem .16rem .16rem; }
+
+.sbx__mlabel { display: flex; align-items: center; gap: .1rem; color: var(--text-lo); font-size: .16rem; margin-bottom: .08rem; }
+.sbx__empty { color: var(--text-lo); padding: .2rem 0; text-align: center; }
+.sbx__count { width: .8rem; height: .3rem; padding: 0 .08rem; background: rgba(255,255,255,.06); border: 1px solid var(--line-2); border-radius: .04rem; color: var(--text-md); }
+
+/* 干员 / 装备 grid */
+.sbx__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(1.1rem, 1fr)); gap: .08rem; }
+.sbx__cell { display: flex; flex-direction: column; align-items: center; gap: .04rem; padding: .08rem .04rem; background: rgba(255,255,255,.05); border: 1px solid var(--line-2); border-radius: .06rem; cursor: pointer; transition: background-color var(--t-fast), border-color var(--t-fast); }
+.sbx__cell:hover { background: rgba(255,255,255,.12); border-color: var(--amber, #f6a329); }
+.sbx__cell-name { font-size: .16rem; color: var(--text-md); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 地图 / 首领 rows */
+.sbx__rows { display: flex; flex-direction: column; gap: .05rem; }
+.sbx__row { display: flex; align-items: center; justify-content: space-between; gap: .12rem; padding: .07rem .14rem; background: rgba(255,255,255,.04); border: 1px solid var(--line-2); border-radius: .05rem; color: var(--text-md); cursor: pointer; text-align: left; }
+.sbx__row:hover { background: rgba(255,255,255,.1); }
+.sbx__row.is-on { border-color: var(--amber, #f6a329); background: rgba(246,163,41,.12); }
+.sbx__row-sub { color: var(--text-lo); }
+/* 地图缩略预览（StageThumb）：把 stage.rows 画成彩色小格 */
+.sbx__row--map { justify-content: flex-start; }
+.sbx-map { flex: none; display: inline-grid; grid-template-columns: repeat(var(--cols), 1fr); width: .72rem; background: #050706; border: 1px solid var(--line-2); border-radius: .03rem; overflow: hidden; }
+.sbx-map i { display: block; aspect-ratio: 1; }
+.sbx-map--empty { width: .72rem; height: .72rem; }
+.sbx-setup .sbx-map { width: 1.05rem; }
+.sbx__tag { margin-left: .12rem; padding: 0 .08rem; font-size: .14rem; font-style: normal; color: var(--mint-400, #5fe0b3); border: 1px solid currentColor; border-radius: .04rem; }
+
+/* 波次 */
+.sbx__wave { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .18rem; }
+.sbx__wave-pick { display: flex; flex-direction: column; gap: .05rem; max-height: 34vh; overflow: auto; }
+.sbx__enemy { display: flex; align-items: center; gap: .1rem; padding: .06rem .12rem; background: rgba(255,255,255,.05); border: 1px solid var(--line-2); border-radius: .05rem; }
+.sbx__enemy-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sbx__stepper { display: flex; align-items: center; gap: .06rem; }
+.sbx__stepper button { padding: 0 .1rem; height: .3rem; background: rgba(255,255,255,.08); border: 1px solid var(--line-2); border-radius: .04rem; color: var(--text-md); cursor: pointer; }
+.sbx__x { width: .3rem; height: .3rem; background: transparent; border: 0; color: var(--text-lo); cursor: pointer; }
+.sbx__x:hover { color: #ff6b6b; }
+.sbx__ghost { align-self: flex-start; padding: .05rem .14rem; background: transparent; border: 1px solid var(--line-2); border-radius: .04rem; color: var(--text-lo); cursor: pointer; }
+
+/* 数值 */
+.sbx__nums { display: flex; flex-direction: column; gap: .18rem; padding: .12rem 0; }
+.sbx__num-row { display: flex; align-items: center; gap: .16rem; }
+.sbx__num-row > span:first-child { width: 2rem; color: var(--text-lo); }
+.sbx__num-row input[type="range"] { flex: 1 1 auto; max-width: 5rem; }
+.sbx__num-row input[type="number"] { width: 1.2rem; height: .34rem; padding: 0 .1rem; background: rgba(255,255,255,.06); border: 1px solid var(--line-2); border-radius: .04rem; color: var(--text-md); }
+.sbx__num-row b { min-width: 1rem; }
+
+/* 进沙盒时的「选择战场」全屏选择（SandboxSetup）：只问地图 + 普通/首领战场，选完直接进游戏 */
+.sbx-setup { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(4, 6, 6, .82); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.sbx-setup__panel { width: min(1100px, 94vw); max-height: 90vh; display: flex; flex-direction: column; background: rgba(12, 15, 14, .98); border: 1px solid var(--line-2); border-radius: .1rem; box-shadow: 0 .08rem .5rem rgba(0, 0, 0, .6); color: var(--text-md); }
+.sbx-setup__head { display: flex; align-items: center; gap: .12rem; padding: .18rem .22rem; border-bottom: 1px solid var(--line); }
+.sbx-setup__head .icon { width: .3rem; height: .3rem; color: var(--amber, #f6a329); }
+.sbx-setup__title { font-size: .28rem; font-weight: 700; letter-spacing: .08em; }
+.sbx-setup__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .24rem; padding: .2rem .22rem; overflow: hidden; }
+.sbx-setup__col { display: flex; flex-direction: column; min-height: 0; }
+.sbx-setup__scroll { overflow: auto; max-height: 52vh; }
+.sbx-setup__modes { display: flex; gap: .1rem; margin-bottom: .12rem; }
+.sbx__mode { flex: 1 1 0; padding: .12rem 0; background: rgba(255,255,255,.05); border: 1px solid var(--line-2); border-radius: .05rem; color: var(--text-lo); font-size: .2rem; cursor: pointer; }
+.sbx__mode:hover { color: var(--text-md); }
+.sbx__mode.is-on { color: #0b1822; background: var(--amber, #f6a329); border-color: var(--amber, #f6a329); font-weight: 700; }
+.sbx-setup__foot { display: flex; align-items: center; justify-content: space-between; gap: .16rem; padding: .16rem .22rem; border-top: 1px solid var(--line); }
+
+/* 战斗中「退出战斗」→ 回沙盒准备 */
+.sbx-exit { position: absolute; left: 50%; bottom: 1.2rem; transform: translateX(-50%); z-index: 30; pointer-events: auto; }
+
+/* 羁绊分组（干员页） */
+.sbx__groups { display: flex; flex-direction: column; gap: .06rem; }
+.sbx__group-head { display: flex; align-items: center; gap: .1rem; width: 100%; padding: .07rem .12rem; background: rgba(255,255,255,.04); border: 1px solid var(--line-2); border-radius: .05rem; color: var(--text-md); cursor: pointer; text-align: left; }
+.sbx__group-head:hover { background: rgba(255,255,255,.1); }
+.sbx__group-head .bglyph { width: .3rem; height: .3rem; flex: none; }
+.sbx__group-name { flex: 1 1 auto; font-weight: 600; }
+.sbx__group-count { color: var(--text-lo); }
+.sbx__group-caret { width: .24rem; height: .24rem; color: var(--text-lo); transition: transform var(--t-fast); }
+.sbx__group-head.is-open .sbx__group-caret { transform: rotate(180deg); }
+.sbx__group .sbx__grid { padding: .08rem 0 .04rem; }
+
+/* 数值页：每个羁绊一行，直接填层数 */
+.sbx__bonds { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.6rem, 1fr)); gap: .06rem; max-height: 32vh; overflow: auto; }
+.sbx__bond { display: flex; align-items: center; gap: .1rem; padding: .05rem .1rem; background: rgba(255,255,255,.04); border: 1px solid var(--line-2); border-radius: .05rem; }
+.sbx__bond .bglyph { width: .28rem; height: .28rem; flex: none; }
+.sbx__bond-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sbx__bond input[type="number"] { width: 1rem; height: .3rem; padding: 0 .08rem; background: rgba(255,255,255,.06); border: 1px solid var(--line-2); border-radius: .04rem; color: var(--text-md); }
