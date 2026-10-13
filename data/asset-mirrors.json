@@ -3,15 +3,15 @@
   "_note": "素材镜像（客户端）。客户端会先各探测一次、挑最快的用，所以顺序只是初始顺序。每个 base 不带结尾斜杠，路径与主站相同（<base>/assets/…、<base>/fonts/…）。要带 CORS。directFallback:false = 严格镜像模式：/assets、/fonts 的下载**只走镜像，绝不回落主站**（预载、图片、音频、Spine 都算）——镜像必须可靠，否则素材会加载失败；主站上行很小（如 10 Mbps）时务必开启。下面这批于 2026-10-10 在本机实测：200 + CORS 通过（GitHub 反代 / jsDelivr 及其备用域名 / 直连 raw），互为冗余。",
   "directFallback": false,
   "mirrors": [
-    "https://gh-proxy.com/https://raw.githubusercontent.com/16626999910/-/main",
-    "https://ghfast.top/https://raw.githubusercontent.com/16626999910/-/main",
-    "https://ghproxy.net/https://raw.githubusercontent.com/16626999910/-/main",
-    "https://ghproxy.imciel.com/https://raw.githubusercontent.com/16626999910/-/main",
-    "https://jsd.onmicrosoft.cn/gh/16626999910/-@main",
-    "https://cdn.jsdelivr.net/gh/16626999910/-@main",
-    "https://fastly.jsdelivr.net/gh/16626999910/-@main",
-    "https://gcore.jsdelivr.net/gh/16626999910/-@main",
-    "https://testingcf.jsdelivr.net/gh/16626999910/-@main",
-    "https://raw.githubusercontent.com/16626999910/-/main"
+    "https://gh-proxy.com/https://raw.githubusercontent.com/bin-g-ice/-/main",
+    "https://ghfast.top/https://raw.githubusercontent.com/bin-g-ice/-/main",
+    "https://ghproxy.net/https://raw.githubusercontent.com/bin-g-ice/-/main",
+    "https://ghproxy.imciel.com/https://raw.githubusercontent.com/bin-g-ice/-/main",
+    "https://jsd.onmicrosoft.cn/gh/bin-g-ice/-@main",
+    "https://cdn.jsdelivr.net/gh/bin-g-ice/-@main",
+    "https://fastly.jsdelivr.net/gh/bin-g-ice/-@main",
+    "https://gcore.jsdelivr.net/gh/bin-g-ice/-@main",
+    "https://testingcf.jsdelivr.net/gh/bin-g-ice/-@main",
+    "https://raw.githubusercontent.com/bin-g-ice/-/main"
   ]
 }
