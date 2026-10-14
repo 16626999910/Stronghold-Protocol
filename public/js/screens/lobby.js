@@ -369,27 +369,31 @@ export function restartCountdownText(ms, tt = t) {
 }
 
 /**
- * 每日重启 (this build): the lobby copy shows a **fixed 北京时间 03:25** — a product decision, so players always read 3:25
- * whatever the host clock is. The process schedules on its own local clock (`SP_RESTART_AT`, server/http/restart.js; the
- * default 19:25 makes a UTC host restart at 03:25 Beijing). `at` (welcome.restartAt) is only the ON/OFF signal — a null
- * hides the line; its hour/minute are ignored. The countdown targets the viewer's local 3:25 (the audience is 北京时间).
+ * 每日重启 (this build): the process schedules on its own local clock (`SP_RESTART_AT`, server/http/restart.js; a UTC
+ * host at 00:00 = 北京时间 08:00). The lobby shows the restart time in the **VIEWER's own timezone**: `nextAt`
+ * (welcome.restartNextAt, an epoch) → `new Date(nextAt).toLocaleTimeString()` uses the browser's zone, so a player in
+ * any timezone reads their local time for the same instant (2026-10-14). Without `nextAt` (older server) it falls back
+ * to the fixed 北京时间 03:25 (RESTART_DISPLAY). `at` (welcome.restartAt) is the on/off signal — null hides the line.
  */
 export const RESTART_DISPLAY = Object.freeze({ hour: 3, minute: 25 });
 
 /**
- * 每日重启倒计时 (welcome.restartAt as the on/off signal): a live, non-blocking line under the lobby header. Replaces
- * the old dismissible 「服务器每日 … 重启」 popup; renders nothing when the server has the feature off (restartAt null).
- * Amber inside the last 5 minutes. The displayed time is RESTART_DISPLAY, not the server's own value.
+ * 每日重启倒计时 (welcome.restartAt as the on/off signal): a live, non-blocking line under the lobby header. Renders
+ * nothing when the server has the feature off (restartAt null). Amber inside the last 5 minutes. The displayed time is
+ * the restart instant in the viewer's local timezone when the server sent `nextAt`, else the fixed 北京 3:25.
  */
-export function RestartCountdown({ at }) {
+export function RestartCountdown({ at, nextAt = null }) {
   const on = !!(at && Number.isInteger(at.hour) && Number.isInteger(at.minute));
-  const { hour, minute } = RESTART_DISPLAY;
-  const time = on ? `${hour}:${String(minute).padStart(2, '0')}` : null;
-  const [left, setLeft] = useState(() => (on ? msUntilRestart(RESTART_DISPLAY, serverNow()) : 0));
-  const key = on ? `${hour}:${minute}` : '';
+  const epoch = Number.isFinite(nextAt) ? nextAt : null;
+  const time = !on ? null
+    : epoch != null ? new Date(epoch).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : `${RESTART_DISPLAY.hour}:${String(RESTART_DISPLAY.minute).padStart(2, '0')}`;
+  const remain = () => (epoch != null ? Math.max(0, epoch - serverNow()) : msUntilRestart(RESTART_DISPLAY, serverNow()));
+  const [left, setLeft] = useState(() => (on ? remain() : 0));
+  const key = on ? (epoch != null ? `e${epoch}` : `${RESTART_DISPLAY.hour}:${RESTART_DISPLAY.minute}`) : '';
   useEffect(() => {
     if (!key) return undefined;
-    const tick = () => setLeft(msUntilRestart(RESTART_DISPLAY, serverNow()));
+    const tick = () => setLeft(epoch != null ? Math.max(0, epoch - serverNow()) : msUntilRestart(RESTART_DISPLAY, serverNow()));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -521,6 +525,7 @@ export function LobbyScreen() {
 
   // 每日重启 (welcome.restartAt): the countdown component reads it from the store directly
   const restartAt = useStore((s) => s.restartAt, shallowEqual);
+  const restartNextAt = useStore((s) => s.restartNextAt, Object.is);
 
   // 开始匹配 waiting stage: while it is open, re-ask the server to be in the 匹配池 at `roomSize` every MM_SEARCH_MS
   // (server/lobby.js _matchFromPool — idempotent: out of the pool and back in, so one human never counts twice). A miss
@@ -634,7 +639,7 @@ export function LobbyScreen() {
       </div>
     </header>
 
-    <${RestartCountdown} at=${restartAt} />
+    <${RestartCountdown} at=${restartAt} nextAt=${restartNextAt} />
 
     <main class="hub-stage">
       <div class="hub-center">
@@ -734,7 +739,7 @@ export function LobbyScreen() {
       <//>
     <//>` : null}
 
-    ${overlay === 'lb' ? html`<${Modal} open=${true} title=${t('排行榜')} micro="LEADERBOARD" tone="mint" onClose=${() => setOverlay(null)} width="min(820px, 96vw)">
+    ${overlay === 'lb' ? html`<${Modal} open=${true} title=${t('排行榜')} micro="LEADERBOARD" tone="mint" onClose=${() => setOverlay(null)} width="min(920px, 96vw)">
       <div class="section-label"><span class="section-label__idx num">05</span>${t('排行榜')}<${MicroLabel}>LEADERBOARD<//></div>
       <${LobbyLeaderboard} />
     <//>` : null}

@@ -48,7 +48,7 @@
 /* emoji_bkg is 313×231 with a soft shadow margin; its opaque plate spans x 15–297, y 13–212. The cells, the pager
    and the CSS fallback plate all use that geometry. */
 .ewheel__panel {
-  position: absolute; left: -.15rem; bottom: calc(100% + .48rem); z-index: 5;
+  position: absolute; left: -.15rem; bottom: calc(100% + 1.52rem); z-index: 5;
   width: 3.13rem; height: 2.31rem; padding: 0; box-sizing: border-box;
   background: none; border: 0; border-radius: 0; box-shadow: none;
   transform-origin: .45rem 100%;

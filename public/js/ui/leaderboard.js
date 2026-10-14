@@ -16,8 +16,16 @@ import { net } from '../net.js';
 import { useStore, shallowEqual, serverNow } from '../store.js';
 import { t } from '../../../shared/i18n.js';
 import { DIFFICULTY_NAMES } from '../../../shared/constants.js';
+import { fmtNum } from './gameLogic.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
+
+/** One player's 盟约 list (id + layers + active) for the detail view; defensive. */
+function normBonds(b) {
+  return (Array.isArray(b) ? b : [])
+    .filter((x) => x && typeof x === 'object' && typeof x.id === 'string' && x.id)
+    .map((x) => ({ id: String(x.id), layers: Math.max(0, Number(x.layers) || 0), active: !!x.active }));
+}
 
 /** How often the board re-asks the server for its records (they change only when a match ends). */
 export const LEADERBOARD_REFRESH_MS = 20000;
@@ -42,12 +50,9 @@ function boardAge(at, now = serverNow()) {
   return new Date(at).toLocaleDateString();
 }
 
-/** 总伤害 (the MVP metric) as a short number: 1.2 万 / 3.4 亿. */
+/** 总伤害 (the MVP metric) as a short number — 万 / 亿 / 兆 / 京 … (fmtNum; 超过最大单位转科学计数). */
 function fmtDamage(v) {
-  const n = Math.max(0, Number(v) || 0);
-  if (n >= 1e8) return `${(n / 1e8).toFixed(2)} 亿`;
-  if (n >= 1e4) return `${(n / 1e4).toFixed(1)} 万`;
-  return String(Math.round(n));
+  return fmtNum(Math.max(0, Number(v) || 0));
 }
 
 /** The rows as the board shows them (defensive: a broken row is dropped); keyed by bossId for the cards. */
@@ -85,6 +90,7 @@ export function normalizeBoardEntry(entry) {
     players: players.filter((p) => p && typeof p === 'object').map((p) => ({
       name: String(p.name || ''), isBot: !!p.isBot, left: !!p.left, alive: !!p.alive, mvp: !!p.mvp,
       title: typeof p.title === 'string' ? p.title : null,
+      bonds: normBonds(p.bonds),
       stats: p.stats && typeof p.stats === 'object' ? p.stats : {},
     })),
   };
@@ -108,6 +114,7 @@ export function normalizeEndlessBoard(list) {
         bandIds: Array.isArray(p.bandIds) ? p.bandIds.filter((x) => typeof x === 'string') : [],
         exclusiveBond: typeof p.exclusiveBond === 'string' ? p.exclusiveBond : null, // 核心(专属)盟约
         title: p.title && typeof p.title === 'object' ? (p.title.name || null) : (typeof p.title === 'string' ? p.title : null),
+        bonds: normBonds(p.bonds),
         stats: p.stats && typeof p.stats === 'object' ? p.stats : {},
       })),
     }));
@@ -121,7 +128,7 @@ function EndlessBoard({ rows, metric, onOpen }) {
       <th class="num">${t('通过回合')}</th><th class="num">${t('打桩伤害')}</th><th>${t('时间')}</th>
     </tr></thead>
     <tbody>
-      ${rows.length ? rows.map((e, i) => html`<tr key=${e.teamKey + i} class=${cx('lb-row', metric === 'rounds' && i === 0 && 'is-mvp')}
+      ${rows.length ? rows.map((e, i) => html`<tr key=${e.teamKey + i} class=${cx('lb-row', i === 0 && 'lb-row--top1', i === 1 && 'lb-row--top2', i === 2 && 'lb-row--top3')}
           role="button" tabindex="0" title=${t('查看该局结算')} onClick=${() => onOpen && onOpen(e)}>
         <td class="num">${i + 1}</td>
         <td>
@@ -160,15 +167,7 @@ function EndlessDetail({ entry, onBack }) {
       <span class="num">${t('打桩伤害')} ${fmtDamage(entry.dmg)}</span>
       <span class="t-dim">${t('房主')} ${entry.owner || t('未知')} · ${entry.teamSize} ${t('人')}</span>
     </div>
-    <table class="lb-table">
-      <thead><tr><th>${t('队员')}</th>${cols.map(([label]) => html`<th class="num">${label}</th>`)}</tr></thead>
-      <tbody>
-        ${entry.players.map((p, i) => html`<tr key=${i}>
-          <td><span class="lb-detail__name">${p.name}${p.title ? html`<span class="lb-title">${p.title}</span>` : null}</span>${coreOf(p)}</td>
-          ${cols.map(([, key]) => html`<td class="num">${fmtDamage(p.stats[key])}</td>`)}
-        </tr>`)}
-      </tbody>
-    </table>
+    <${RunPlayers} players=${entry.players} cols=${cols} coreOf=${coreOf} />
   </div>`;
 }
 
@@ -188,6 +187,7 @@ function BossCard({ boss, rec, lookups, onOpen }) {
     <div class="lb-card__head">
       <span class="lb-card__icon">${icon ? html`<${Img} src=${icon} alt="" fallback=${html`<${GIcon} name="sword" />`} />` : html`<${GIcon} name="sword" />`}</span>
       <span class="lb-card__name">${boss.name}</span>
+      ${rec && rec.difficulty ? html`<span class="lb-chip">${DIFFICULTY_NAMES[rec.difficulty] || rec.difficulty}</span>` : null}
     </div>
     ${rec
       ? html`<button type="button" class="lb-card__team" onClick=${() => onOpen(boss.id)}>
@@ -200,6 +200,41 @@ function BossCard({ boss, rec, lookups, onOpen }) {
           <${GIcon} name="chevronRight" class="lb-card__go" />
         </button>`
       : html`<div class="lb-card__none">${t('暂无通关记录')}</div>`}
+  </div>`;
+}
+
+/** One player's 盟约 as chips (icon + name + 层数). The settlement records id + layers per bond. */
+function BondChips({ bonds }) {
+  if (!Array.isArray(bonds) || !bonds.length) return null;
+  const assets = data.get('assets');
+  return html`<div class="lb-bonds">
+    ${bonds.map((b) => {
+      const name = data.lookup('bonds', b.id)?.name || b.id;
+      const url = bondIconUrl(assets, b.id);
+      return html`<span key=${b.id} class=${cx('lb-bond', b.active && 'is-active')} title=${`${name}${b.layers ? ` · ${b.layers} ${t('层')}` : ''}`}>
+        ${url ? html`<${Img} class="lb-bond__ico" src=${url} alt=${name} />` : null}
+        <span class="lb-bond__name">${name}</span>
+        ${b.layers ? html`<b class="lb-bond__n num">${b.layers}</b>` : null}
+      </span>`;
+    })}
+  </div>`;
+}
+
+/** The player cards of one run's detail: name / MVP / title / 核心盟约, then 盟约层数 chips, then a stat grid. */
+function RunPlayers({ players, cols, coreOf = null }) {
+  return html`<div class="lb-runs">
+    ${players.map((p, i) => html`<article key=${i} class=${cx('lb-run', p.mvp && 'is-mvp')}>
+      <header class="lb-run__head">
+        <b class="lb-run__name">${p.name}</b>
+        ${p.mvp ? html`<span class="lb-mvp-tag">${t('MVP')}</span>` : null}
+        ${p.title ? html`<span class="lb-title lb-title--inline">${p.title}</span>` : null}
+        ${coreOf ? coreOf(p) : null}
+      </header>
+      <${BondChips} bonds=${p.bonds} />
+      <div class="lb-run__stats">
+        ${cols.map(([label, key]) => html`<span class="lb-stat"><i class="lb-stat__k">${label}</i><b class="lb-stat__v num">${fmtDamage(p.stats[key])}</b></span>`)}
+      </div>
+    </article>`)}
   </div>`;
 }
 
@@ -219,18 +254,7 @@ function BoardDetail({ entry, onBack }) {
       <span class="lb-detail__time num">${formatClearTime(e.durationMs)}</span>
       <span class="t-dim">${t('房主')} ${e.owner || t('未知')} · ${e.teamSize} ${t('人')}</span>
     </div>
-    <table class="lb-table">
-      <thead><tr><th>${t('队员')}</th>${cols.map(([label]) => html`<th class="num">${label}</th>`)}</tr></thead>
-      <tbody>
-        ${e.players.map((p, i) => html`<tr key=${i} class=${p.mvp ? 'is-mvp' : ''}>
-          <td>
-            ${p.name}${p.mvp ? html`<span class="lb-mvp-tag">${t('MVP')}</span>` : null}
-            ${p.title ? html`<span class="lb-title">${p.title}</span>` : null}
-          </td>
-          ${cols.map(([, key]) => html`<td class="num">${fmtDamage(p.stats[key])}</td>`)}
-        </tr>`)}
-      </tbody>
-    </table>
+    <${RunPlayers} players=${e.players} cols=${cols} />
   </div>`;
 }
 

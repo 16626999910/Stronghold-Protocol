@@ -255,6 +255,7 @@ export function EmoteWheel({ onSend, onChat, open, onToggle, chats = null, nameO
   const drag = useRef(null);                  // { id, x0, moved }
   const swallowClick = useRef(false);
   const wheelAcc = useRef({ x: 0, t: -Infinity, spent: false });
+  const logRef = useRef(null);                // 聊天记录「回放」容器（自动滚到最新）
   const live = useRef({});
   live.current = { page, onToggle };
 
@@ -268,6 +269,12 @@ export function EmoteWheel({ onSend, onChat, open, onToggle, chats = null, nameO
 
   // reopen on the last used theme (and clear any half-typed chat)
   useEffect(() => { if (open) { setPage(lastThemeIndex()); setDir(0); setDx(0); } else setText(''); }, [open]);
+
+  // 聊天记录「回放」: 新消息在列表底部 —— 每次聊天变化都滚到最新 (否则只能看到旧的那几条)
+  useEffect(() => {
+    const el = logRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chats, open]);
 
   // cooldown: the button is greyed for chatCD after a send (from the send time, so a remounted wheel keeps it)
   useEffect(() => {
@@ -370,7 +377,7 @@ export function EmoteWheel({ onSend, onChat, open, onToggle, chats = null, nameO
           onInput=${(e) => setText(e.target.value)} />
         <button type="submit" class="ewheel__chat-send" disabled=${cooling || disabled}>${t('发送')}</button>
       </form>
-      ${Array.isArray(chats) && chats.length ? html`<div class="ewheel__log" role="log" aria-label=${t('聊天记录')}>
+      ${Array.isArray(chats) && chats.length ? html`<div class="ewheel__log" ref=${logRef} role="log" aria-label=${t('聊天记录')}>
         ${chats.slice(-6).map((c) => html`<div key=${c.seq} class="ewheel__log-line">
           <b class="ewheel__log-name">${nameOf ? nameOf(c.playerId) : ''}</b><span class="ewheel__log-text">${c.text}</span>
         </div>`)}

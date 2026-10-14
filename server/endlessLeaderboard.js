@@ -25,6 +25,13 @@ export const ENDLESS_BOARD_TOP = ENDLESS.LEADERBOARD_TOP;
 
 const noopLog = { info() {}, warn() {}, error() {} };
 
+/** Per-player 盟约 (id + layers) — the detail view lists them (settlement `bonds`). */
+function trimBonds(bonds) {
+  return Array.isArray(bonds)
+    ? bonds.slice(0, 24).map((b) => ({ id: String(b?.bondId ?? ''), layers: Math.max(0, Number(b?.layers) || 0), active: !!b?.active })).filter((b) => b.id)
+    : [];
+}
+
 /** One settlement player row, trimmed for the board (the client's detail view). */
 function trimPlayer(p) {
   if (!p || typeof p !== 'object') return null;
@@ -38,6 +45,7 @@ function trimPlayer(p) {
     alive: !!p.alive,
     bandIds: Array.isArray(p.bandIds) && p.bandIds.length ? p.bandIds.slice()
       : typeof p.bandId === 'string' ? [p.bandId] : [],
+    bonds: trimBonds(p.bonds),
     lineup: Array.isArray(p.lineup) ? p.lineup.slice(0, 12).map((c) => (c && typeof c === 'object' ? String(c.id ?? '') : String(c))) : [],
     stats: {
       dmgDealt: Math.max(0, Number(s.dmgDealt) || 0),

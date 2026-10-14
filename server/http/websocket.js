@@ -31,6 +31,18 @@ export const WS_DEFLATE = Object.freeze({
 });
 
 /**
+ * Whether permessage-deflate is enabled. **OFF by default** (2026-10-14): every server→client message is compressed
+ * per connection from scratch (`serverNoContextTakeover`), so its CPU cost scales with sockets × messages — on a small
+ * server a dozen concurrent players already saturate the loop and latency climbs. This game's WS payloads are tiny next
+ * to the art (which goes through the asset mirrors), so the bandwidth saving is not worth it. Set `SP_WS_DEFLATE=1`
+ * (or `wsDeflate: true` on startServer) to turn it back on.
+ */
+export function wsDeflateEnabled(opt) {
+  const v = typeof opt === 'boolean' ? (opt ? '1' : '0') : String(opt ?? process.env.SP_WS_DEFLATE ?? '').toLowerCase();
+  return v === '1' || v === 'true' || v === 'on' || v === 'yes';
+}
+
+/**
  * Does every permessage-deflate offer of this `Sec-WebSocket-Extensions` header cap the server window below
  * WS_DEFLATE.serverMaxWindowBits? ws cannot accept such an offer and refuses the whole handshake (400), so the upgrade
  * drops the header instead and the connection goes uncompressed. No browser sends `server_max_window_bits`.
@@ -86,8 +98,9 @@ function meterSocket(ws, req, traffic) {
  * @param {{ network: Network, log: object, traffic?: ReturnType<typeof import('./traffic.js').createTrafficCounter> }} deps
  * @returns {WebSocketServer}
  */
-export function attachWebSocket(server, { network, log, traffic = null }) {
-  const wss = new WebSocketServer({ noServer: true, maxPayload: WS_MAX_PAYLOAD, perMessageDeflate: { ...WS_DEFLATE }, clientTracking: false });
+export function attachWebSocket(server, { network, log, traffic = null, deflate = undefined }) {
+  const pmd = wsDeflateEnabled(deflate) ? { ...WS_DEFLATE } : false;
+  const wss = new WebSocketServer({ noServer: true, maxPayload: WS_MAX_PAYLOAD, perMessageDeflate: pmd, clientTracking: false });
   wss.on('connection', (ws, req) => {
     if (traffic) meterSocket(ws, req, traffic);
     network.handleConnection(ws, req);

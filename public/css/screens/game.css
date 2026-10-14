@@ -304,7 +304,9 @@
   max-height: calc(100vh - 2.6rem);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-right: 1.2rem;
+  /* 右侧留出气泡宽度：局内打字气泡 (.team__chat, max-width 3.4rem) 挂在行右侧，若 padding 不够会被 .team 的
+     overflow 裁掉 → 长句看不全 (作者反馈 2026-10-14)。 */
+  padding-right: 3.5rem;
   scrollbar-width: thin;
   scrollbar-color: var(--mint-a35) transparent;
 }

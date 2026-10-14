@@ -95,7 +95,8 @@ export const initialState = Object.freeze({
   ui: { pendingJoin: null, restoring: false, buildStale: false },
   mm: { rooms: [], stats: null, at: 0 },
   online: null,
-  restartAt: null,
+  restartAt: null,       // { hour, minute } (server-local) — the on/off + fallback time of the daily restart notice
+  restartNextAt: null,   // epoch ms of the next restart (server clock) — shown in the VIEWER's own timezone
 });
 
 /** The app-wide store singleton. */

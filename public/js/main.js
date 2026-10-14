@@ -49,6 +49,7 @@ import { installAudio } from './audio.js';
 import { settingsStore } from './ui/settings.js';
 import { GuideHost } from './ui/guide.js';
 import { AnnounceHost } from './ui/announcements.js';
+import { TempNoticeHost } from './ui/tempNotice.js'; // ⚠️ 临时(2:00 更新弹窗, 与临时重启同块) —— 用后删除本行 + App 里的 <${TempNoticeHost} />
 import { LobbyChatHost, lobbyChatPush, lobbyChatSetList } from './ui/lobbyChat.js';
 import { PreloadHost, installPreload } from './ui/preload.js';
 import { assetMirrors, isAssetPath } from './assetMirrors.js';
@@ -158,9 +159,15 @@ function onWelcome(msg) {
   const at = msg.restartAt;
   const restartAt = at && Number.isInteger(at.hour) && at.hour >= 0 && at.hour <= 23 && Number.isInteger(at.minute) && at.minute >= 0 && at.minute <= 59
     ? { hour: at.hour, minute: at.minute } : null;
+  // the next restart as an epoch (server clock) → the lobby countdown shows it in the VIEWER's own timezone
+  const restartNextAt = Number.isFinite(msg.restartNextAt) ? msg.restartNextAt : null;
+  // ⚠️ 临时：发版用一次性重启的时刻（服务端钟），供「临时更新弹窗」对齐 —— 更新重启后连同 tempNotice.js 一起删。
+  const tempRestartAt = Number.isFinite(msg.tempRestartAt) ? msg.tempRestartAt : null;
   store.set({
     me: { playerId: msg.playerId ?? null, name, token: typeof msg.token === 'string' ? msg.token : null, avatar },
     restartAt,
+    restartNextAt,
+    tempRestartAt,
   });
   welcomeAt = Date.now();
 
@@ -335,6 +342,7 @@ function App() {
     <${UiHosts} />
     <${GuideHost} />
     <${AnnounceHost} />
+    <${TempNoticeHost} />
     <${LobbyChatHost} />
     <${LoadoutHost} />
     <${PreloadHost} />

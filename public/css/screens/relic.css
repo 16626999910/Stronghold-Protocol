@@ -153,6 +153,11 @@
 }
 .relicbar__title { font-size: calc(.13 * var(--t)); color: var(--amber-500, #f0b429); font-weight: 700; letter-spacing: .02em; }
 .relicbar__stats { font-size: calc(.11 * var(--t)); color: var(--mint-300, #7fe6b6); font-weight: 700; cursor: help; padding: 0 .02rem; }
+/* 可收缩 (2026-10-14): 点标题箭头折叠藏品库 */
+.relicbar__toggle { display: inline-flex; align-items: center; gap: .06rem; background: transparent; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.relicbar__toggle .icon { width: .16rem; height: .16rem; color: var(--text-md); transition: transform var(--t-fast, .15s); }
+.relicbar:not(.is-collapsed) .relicbar__toggle .icon { transform: rotate(180deg); }
+.relicbar__n { margin-left: .05rem; color: var(--amber-500, #f0b429); font-weight: 800; }
 .relicbar__list { display: flex; gap: .05rem; }
 .relicbar__item { position: relative; width: .3rem; height: .3rem; cursor: help; }
 .relicbar__icon { width: 100%; height: 100%; object-fit: contain; }

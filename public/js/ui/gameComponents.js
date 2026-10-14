@@ -133,7 +133,8 @@ export function UnitThumb({ kind = 'chess', id, golden, size = 'md', tier, showT
     const gb = grantBond || transferBond(id, (x) => data.lookup('items', x), alone); // 转职: 盟约图标
     src = gb ? bondIconUrl(m, gb) : itemIconUrl(m, it);
     name = it?.name || '';
-    t = t ?? it?.tier;
+    // 转职 (giveBondId, endless): 统一六阶 (买时 piece.tierOverride=6; 观战/详情按数据原阶会显得"什么阶都有")
+    t = gb ? 6 : (t ?? it?.tier);
     golden = golden ?? !!it?.isGolden;
   } else if (kind === 'token') {
     const tk = data.lookup('tokens', id);

@@ -5,6 +5,7 @@
 import { html, Modal, MicroLabel, Button, Icon } from './components.js';
 import { Img } from './gameComponents.js';
 import { itemIconUrl, bondIconUrl } from './assetUrls.js';
+import { useState } from '../../vendor/hooks.module.js';
 import { data } from '../data.js';
 import { t } from '../../../shared/i18n.js';
 import { ENDLESS } from '../../../shared/constants.js';
@@ -92,15 +93,21 @@ export function EconShopOverlay({ offer, onBuy = () => {}, onRefresh = () => {},
 /** 顶部「藏品库」: the team's relics + the team-wide atk/hp bonus they grant. Hidden when empty. Hover shows the effect.
  *  `combos` (m.private.relicCombos, 反馈④) renders a second row: every 套装/组合 with its 已凑齐进度 (have/need). */
 export function RelicBar({ relics, stats = null, combos = null, nameOf = () => null }) {
+  // 可收缩 (2026-10-14): 藏品太多时挡界面 —— 点标题旁的箭头折叠, 只留标题 + 数量
+  const [open, setOpen] = useState(true);
   if (!Array.isArray(relics) || !relics.length) return null;
   const assets = data.get('assets');
   const pct = (v) => Math.round((Number(v) || 0) * 100);
   const bonus = stats && (stats.atk > 0 || stats.hp > 0)
     ? `全队 攻 +${pct(stats.atk)}% · 血 +${pct(stats.hp)}%` : null;
-  return html`<div class="relicbar" data-testid="relic-bar">
-    <span class="relicbar__title">${t('藏品库')}</span>
-    ${bonus ? html`<span class="relicbar__stats" title=${t('藏品给全队的攻击/生命加成（战斗内生效）')}>${bonus}</span>` : null}
-    <div class="relicbar__list">
+  return html`<div class=${`relicbar${open ? '' : ' is-collapsed'}`} data-testid="relic-bar">
+    <button type="button" class="relicbar__toggle" aria-expanded=${open ? 'true' : 'false'}
+      title=${open ? t('收起藏品库') : t('展开藏品库')} onClick=${() => setOpen((v) => !v)}>
+      <${Icon} name="chevronDown" />
+      <span class="relicbar__title">${t('藏品库')}<b class="relicbar__n num">${relics.length}</b></span>
+    </button>
+    ${open && bonus ? html`<span class="relicbar__stats" title=${t('藏品给全队的攻击/生命加成（战斗内生效）')}>${bonus}</span>` : null}
+    ${open ? html`<div class="relicbar__list">
       ${relics.map((r) => {
         const url = r.icon ? itemIconUrl(assets, { iconId: r.icon })
           : r.bond ? bondIconUrl(assets, r.bond)
@@ -110,8 +117,8 @@ export function RelicBar({ relics, stats = null, combos = null, nameOf = () => n
           ${r.count > 1 ? html`<span class="relicbar__count">×${r.count}</span>` : null}
         </span>`;
       })}
-    </div>
-    ${Array.isArray(combos) && combos.length ? html`<div class="relicbar__combos" data-testid="relic-combos">
+    </div>` : null}
+    ${open && Array.isArray(combos) && combos.length ? html`<div class="relicbar__combos" data-testid="relic-combos">
       ${combos.map((c) => html`<span class=${`relicbar__combo${c.active ? ' is-on' : ''}`} key=${c.key} title=${`${c.name}：${c.text}`}>
         ${c.name} <b>${c.have}/${c.need}</b>${c.active ? ` ${t('已凑齐')}` : ''}</span>`)}
     </div>` : null}

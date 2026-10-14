@@ -100,7 +100,7 @@ import {
   phaseMode, phaseBanner, isCombatPhase, showDeadPill, isBossPhase, placementContext, canPlace, boardTargets, dropIntent,
   battleOverSfx, uniteResultBox, battleResultBox,
   snapHud, activeBubbles, shortcutFor, shortcutBlocked, closesOnFieldPress, phaseTotalSeconds, homeFieldId, ownFieldId, normalizeSp, sortedPlayers,
-  terrainInfo,
+  terrainInfo, fmtNum,
   countdownState, shopBlockReason, stageOverrides, effectiveStage, watchTarget, dropFailureReason, tileKey,
   previewEnemyKey, prepCamera, prepCameraFor, foldCamera, deployFieldOf, fieldTile, panelSide, panelSlots, bondPopupPlace, unitLoadout, deployedRecord,
   mergeTarget, modeOffBonds, readyFundsPrompt, ownerBandId, ownDiyRecord, ownStandIn,
@@ -1495,8 +1495,8 @@ function MatchScreen() {
           : html`<span class="gm__dummy__dmg">${t('累计伤害')} <b class="num">${(() => {
               // 打桩伤害的权威值由服务端在结束后重模拟得出 (pub.endless.dummy.dmg 整场为 0); 进行中先用**本地**在场战斗
               // 各干员的实时伤害求和, 让累计数字随打桩增长 (社区反馈 2026-10-14 系统排查)
-              try { const d = battleRunner?.damageOf?.(field?.fieldId ?? null); if (d) { let s = 0; for (const v of Object.values(d.damage)) s += v; if (s > 0) return Math.round(s).toLocaleString('en-US'); } } catch { /* fall back */ }
-              return Math.round(pub.endless.dummy.dmg || 0).toLocaleString('en-US');
+              try { const d = battleRunner?.damageOf?.(field?.fieldId ?? null); if (d) { let s = 0; for (const v of Object.values(d.damage)) s += v; if (s > 0) return fmtNum(s); } } catch { /* fall back */ }
+              return fmtNum(pub.endless.dummy.dmg || 0);
             })()}</b></span>
             <span class="gm__dummy__time"><b class="num">${pub.endless.dummy.at ? Math.max(0, Math.ceil((pub.endless.dummy.at - serverNow()) / 1000 / (battleSpeedFactor() || 1))) : 0}</b><span class="t-dim">s</span></span>`}
       </div>` : null}

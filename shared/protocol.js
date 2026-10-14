@@ -43,12 +43,13 @@ const isList = (v, max, item) => Array.isArray(v) && v.length <= max && v.every(
 // hardcoded limit would reject every result of a big team as BAD_MSG.
 export const RESULT_LIMITS = Object.freeze({ players: MAX_SEATS, leaked: 400, unitsEnd: 64, unitStats: 160, layerGains: 40, mods: 16, unspawned: 400 });
 const BIG = 1e13;
-// 战斗伤害/治疗量级单独放宽 (无尽狂潮: R100 起首领血池 > 1e13, R110 ≈ 8.4e13, 累计可再高几倍): a client reports the
+// 战斗伤害/治疗量级单独放宽 (无尽狂潮: 首领血池随层数**不封顶**增长, R110 ≈ 8.4e13, R200 ≈ 3.5e21): a client reports the
 // shared-pool damage as a CUMULATIVE value, and a field's damageDealt/healingDone are the same magnitude, so the plain
-// BIG would reject the whole b.progress / b.result once it crosses 1e13 → the server never credits it (community report
-// 2026-10-14「110 层以上首领打它不掉血」). Bounded by 2^53 (Number.MAX_SAFE_INTEGER) for exact integer arithmetic; the
-// endless stat growth itself is capped (constants.js ENDLESS.GROWTH_CAP) so every battle value stays under it.
-const DMG_BIG = Number.MAX_SAFE_INTEGER;
+// BIG would reject the whole b.progress / b.result once it crosses the bound → the server never credits it (community
+// report 2026-10-14「110 层以上首领打它不掉血」). 双精度对这种大数的**相对**精度足够（单次伤害量级 ≈ 血池/伤害的 1e-6），
+// 真正会「丢伤害」的只是**整帧被校验拒掉** —— 故这里只要求**有限数**（拒绝 NaN/Infinity/负数），不设实际量级上限。
+// 服务端另有 `_bossDmgBudget`（按血池比例）兜底，脏数据进不了账。超大数值的**显示**由 fmtNum 换更大单位。
+const DMG_BIG = Number.MAX_VALUE;
 const isStat = (v) => v === undefined || isNum(v, 0, BIG);
 const isDmgStat = (v) => v === undefined || isNum(v, 0, DMG_BIG);
 const isModVal = (v) => v === null || isNum(v, -BIG, BIG) || isStr(v, 64) || isBool(v);

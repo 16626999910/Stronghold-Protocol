@@ -35,6 +35,13 @@ export const TOP_DIFFICULTY = DIFFICULTIES[DIFFICULTIES.length - 1];
 /** Rank of a difficulty key (unknown → -1). */
 const diffRank = (d) => DIFFICULTIES.indexOf(d);
 
+/** Per-player 盟约 (id + layers) — the detail view lists them (settlement `bonds`, results.js bondList). */
+function trimBonds(bonds) {
+  return Array.isArray(bonds)
+    ? bonds.slice(0, 24).map((b) => ({ id: String(b?.bondId ?? ''), layers: Math.max(0, Number(b?.layers) || 0), active: !!b?.active })).filter((b) => b.id)
+    : [];
+}
+
 /** One settlement player row, trimmed for the board (name + the numbers the detail view shows). */
 function trimPlayer(p, mvpId) {
   if (!p || typeof p !== 'object') return null;
@@ -47,6 +54,7 @@ function trimPlayer(p, mvpId) {
     mvp: p.playerId === mvpId || undefined,
     bandId: typeof p.bandId === 'string' ? p.bandId : null,
     lineup: Array.isArray(p.lineup) ? p.lineup.slice(0, 24).map((c) => String(c)) : [],
+    bonds: trimBonds(p.bonds),
     // 结算数据（与 m.result 的 stats 同源）
     stats: {
       dmgDealt: Math.max(0, Number(s.dmgDealt) || 0),

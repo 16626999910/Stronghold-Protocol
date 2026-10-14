@@ -118,7 +118,16 @@ export function createStaticHandler({ publicDir, dataDir, sharedDir, simDir = pa
     }
     // The served manifests: every art URL with its content hash (assetViews.js), once the index is ready
     if (views && (decoded === '/data/assets.json' || decoded === '/data/local-assets.json')) {
-      const view = await views.get(decoded.slice('/data/'.length));
+      const name = decoded.slice('/data/'.length);
+      let view = await views.get(name);
+      // Right after a (re)start the content-hash index is still building. Serving the manifest PLAIN now would hand out
+      // every art URL WITHOUT its `~hash` segment, and the client's incremental preload (ui preload/service.js
+      // pruneRemoved) would drop the hashed URLs it cached and re-download everything — "每次重启都要重新下载". Wait for
+      // the first build (whenReady always resolves, even on error) so the URL form stays stable across restarts.
+      if (!view && assetIndex && !assetIndex.ready) {
+        await assetIndex.whenReady();
+        view = await views.get(name);
+      }
       if (view) {
         await serveBuffer(req, res, { body: view.body, hash: view.hash, type: MIME['.json'], cacheControl: 'no-cache', key: `view:${decoded}`, cache: gzipCache });
         return;

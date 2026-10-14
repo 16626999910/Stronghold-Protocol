@@ -96,3 +96,8 @@
   .patch__list { max-height: 30vh; }
   .patch__doc { max-height: 46vh; }
 }
+
+/* 临时更新弹窗 (ui/tempNotice.js, 作者 2026-10-14, 临时代码) */
+.tempnotice { display: flex; flex-direction: column; gap: .16rem; }
+.tempnotice__text { margin: 0; font-size: calc(.16 * var(--t)); line-height: 1.7; color: var(--text-md); }
+.tempnotice__acts { display: flex; justify-content: flex-end; }

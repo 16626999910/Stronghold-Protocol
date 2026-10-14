@@ -500,7 +500,7 @@ export function ItemDetail({ item, piece, editable, onDestroy, offBonds = null, 
     <div class="dhead dhead--item">
       <div class=${cx('dhead__icon', item.isGolden && 'is-golden')}><${Img} src=${grantBond ? bondIconUrl(m, grantBond) : itemIconUrl(m, item)} fallback=${html`<${GIcon} name="bolt" />`} /></div>
       <div class="dhead__info">
-        <div class="dhead__chips"><${TierChip} tier=${item.tier} golden=${item.isGolden} size="lg" />${item.isGolden ? html`<span class="dtag-elite">${t('进阶')}</span>` : null}
+        <div class="dhead__chips"><${TierChip} tier=${grantBond ? 6 : item.tier} golden=${item.isGolden} size="lg" />${item.isGolden ? html`<span class="dtag-elite">${t('进阶')}</span>` : null}
           <span class="dtag-kind">${grantBond ? t('转职') : item.itemType === 'MAGIC' ? t('奇术') : t('装备')}</span></div>
         <h3 class="dhead__name">${grantBond ? t('转职 · {bond}盟约', { bond: grantName }) : item.name}</h3>
         ${!grantBond && item.flavor ? html`<span class="dhead__flavor">${item.flavor}</span>` : null}

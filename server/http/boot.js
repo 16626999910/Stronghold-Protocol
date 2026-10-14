@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { APP_VERSION, DEV_BUILD } from '../../shared/constants.js';
-import { scheduleDailyRestart, formatRestartAt, RESTART_EXIT_CODE } from './restart.js';
+import { scheduleDailyRestart, formatRestartAt, RESTART_EXIT_CODE, nextTempRestartAt } from './restart.js';
 
 /** Non-internal IPv4 addresses as http URLs. @param {number} port */
 export function lanUrls(port) {
@@ -83,5 +83,24 @@ export async function runMain(start) {
     console.log(`  Restart: daily at ${formatRestartAt(at)} (in ${Math.round(next.ms / 60000)} min) · SP_RESTART_AT=off disables`);
   } else {
     console.log('  Restart: daily auto-restart disabled (SP_RESTART_AT=off)');
+  }
+
+  // ============================================================================================
+  // 临时：发版用重启 (作者 2026-10-14)。**不修改上方的每日重启**，只是**额外**在 **北京时间 02:00**
+  // （服务器为 UTC → 18:00Z）触发一次就退出，由守护进程拉起新进程。目标时刻**动态取「下一次」**，
+  // 免得睡过头/部署延迟导致目标时间已过而失效。要改时间就改 `restart.js` 的 `TEMP_RESTART_UTC`。
+  // 与**「临时更新弹窗」**同源（都读 restart.js 的 nextTempRestartAt）：两者永远对齐，**重启后一起整段删除**——
+  // 本段 + restart.js 的临时块 + lobby.js welcomeInfo 的 tempRestartAt + public/js/ui/tempNotice.js(+main.js 接线)。
+  // ============================================================================================
+  const nowMs = Date.now();
+  const TEMP_RESTART_AT = nextTempRestartAt(nowMs); // 北京 02:00 = UTC 18:00（时刻与「临时更新弹窗」同源）
+  const tempMs = TEMP_RESTART_AT - nowMs;
+  if (tempMs > 0) {
+    const t = setTimeout(() => {
+      console.log('\n[restart] TEMP restart (北京 02:00 / UTC 18:00) — shutting down; the supervisor starts a fresh process');
+      stop('restart', RESTART_EXIT_CODE);
+    }, tempMs);
+    t.unref?.();
+    console.log(`  Restart: TEMP at ${new Date(TEMP_RESTART_AT).toISOString()} = 北京 ${new Date(TEMP_RESTART_AT + 8 * 3600e3).toISOString().slice(11, 16)} (in ${Math.round(tempMs / 60000)} min) — 发版用，重启后删除本段`);
   }
 }

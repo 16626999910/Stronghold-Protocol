@@ -109,6 +109,7 @@ import { Feedback } from './feedback.js';
 import { LobbyChat } from './lobbyChat.js';
 import { Leaderboard } from './leaderboard.js';
 import { EndlessLeaderboard } from './endlessLeaderboard.js';
+import { msUntilTime, nextTempRestartAt } from './http/restart.js';
 
 /** How often the lobby pushes its online counters to every connected session (lobby.stats). */
 export const ONLINE_PUSH_MS = 10_000;
@@ -1410,10 +1411,15 @@ export class Lobby {
 
   /** Extra fields of every `welcome` (net.js): the operators a 自选 slot may field (shared/diy.js `kitted`). */
   welcomeInfo() {
-    // 每日重启: `restartAt` is the on/off signal for the lobby's notice. The displayed time is a FIXED 北京时间 3:25 in
-    // the client (public/js/screens/lobby.js RESTART_DISPLAY) — the process schedules on its own local clock, so a UTC
-    // host's default 19:25 is 03:25 Beijing, and players must read 3:25 whatever the host clock is.
-    return { diyKitted: KITTED_CHARS, restartAt: this.restartAt };
+    // 每日重启: `restartAt` is the on/off signal for the lobby's notice; `restartNextAt` is the next restart as an epoch
+    // (server clock) so the client can show it in the VIEWER's own timezone (2026-10-14: a UTC host restarting at 00:00
+    // = 北京 08:00 must read as the player's local time, not a fixed 3:25).
+    const now = Date.now();
+    const restartNextAt = this.restartAt ? now + msUntilTime(this.restartAt.hour, this.restartAt.minute, now) : null;
+    // ⚠️ 临时：发版用一次性重启的时刻（epoch，服务端钟），供「临时更新弹窗」精确对齐 —— 与 restart.js 的
+    // nextTempRestartAt 同源。重启更新完成后，连同该临时块一起删除本行（客户端删 public/js/ui/tempNotice.js）。
+    const tempRestartAt = nextTempRestartAt(now);
+    return { diyKitted: KITTED_CHARS, restartAt: this.restartAt, restartNextAt, tempRestartAt };
   }
 
   // ---------------------------------------------------------------------------------------------------

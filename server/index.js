@@ -94,7 +94,7 @@ export async function startServer(opts = {}) {
     health: { startedAt, network, registry, lobby, traffic, assetIndex, views },
   }));
   server.on('clientError', answerClientError);
-  const wss = attachWebSocket(server, { network, log, traffic });
+  const wss = attachWebSocket(server, { network, log, traffic, deflate: opts.wsDeflate });
 
   // The address actually bound. The default may fall back to IPv4; the returned host and url follow that.
   let boundHost;

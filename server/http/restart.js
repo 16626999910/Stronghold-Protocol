@@ -84,3 +84,18 @@ export function scheduleDailyRestart(hour, minute, fire, deps = {}) {
   const timer = set(fire, ms);
   return { ms, cancel: () => clear(timer) };
 }
+
+// ============================================================================================
+// ⚠️ 临时：发版用一次性重启 (作者 2026-10-14)。**不改动上方的每日重启**，只是**额外**在某个时刻触发一次就退出。
+// 与**「临时更新弹窗」**(public/js/ui/tempNotice.js) 同属一块临时代码：**后端重启更新完成后，请一起整块删除** ——
+//   ① 本块 ② boot.js 里 nextTempRestartAt 的调用那一段 ③ lobby.js welcomeInfo 里的 tempRestartAt ④ public/js/ui/tempNotice.js
+//   （以及 main.js 里对它的 import 与 <${TempNoticeHost} /> 挂载）。弹窗读的就是这里的时刻，二者永远对齐。
+// 目标是**北京时间 02:00**（服务器为 UTC → 18:00Z）。取「下一次」，免得睡过头/部署延迟导致时刻已过而失效。
+export const TEMP_RESTART_UTC = Object.freeze({ hour: 18, minute: 0 }); // 北京 02:00 = UTC 18:00
+
+/** 下一次临时重启的 epoch（今天该时刻已过则取明天）。@param {number} [now] epoch ms @returns {number} */
+export function nextTempRestartAt(now = Date.now()) {
+  const d = new Date(now);
+  const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), TEMP_RESTART_UTC.hour, TEMP_RESTART_UTC.minute, 0, 0);
+  return t > now ? t : t + 86400000;
+}

@@ -141,6 +141,10 @@
 @keyframes hub-pulse { 0% { box-shadow: 0 0 0 0 rgba(89, 244, 202, .55); } 100% { box-shadow: 0 0 0 .1rem rgba(89, 244, 202, 0); } }
 
 .lobby-hub > .topbar, .hub-stage { position: relative; z-index: 1; }
+/* 顶栏里的 问题反馈 (FeedbackButton) 把它的 Modal 渲染在 topbar 内部；topbar 是层叠上下文，Modal 的 z-index 只在
+   topbar 内部生效。topbar 与 .hub-stage 同 z-index 时后者（DOM 在后）会盖住它 → 「问题反馈面板点不动」。把 topbar
+   抬到 hub-stage 之上即可（两者是上下排列的 flex 项、不重叠，无副作用）。 */
+.lobby-hub > .topbar { z-index: 2; }
 
 .hub-topbar { background: linear-gradient(180deg, rgba(4, 8, 8, .85), transparent); border-bottom: 0; }
 
